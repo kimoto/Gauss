@@ -1,0 +1,75 @@
+//{{NO_DEPENDENCIES}}
+// Microsoft Visual C++ generated include file.
+// Used by GanmaChanger.rc
+//
+
+#define IDC_GAUSS 100
+
+#define IDS_APP_TITLE			103
+
+#define IDR_MAINFRAME			128
+#define IDD_GANMACHANGER_DIALOG	102
+#define IDD_ABOUTBOX			103
+#define IDM_ABOUT				104
+#define IDM_EXIT				105
+
+#define IDI_GANMACHANGER		107
+#define IDI_GANMACHANGER_STOP	110
+#define IDI_SMALL				108
+#define IDC_GANMACHANGER		109
+#define IDC_SLIDER1				112
+#define IDC_SLIDER_GAMMA		113
+#define IDC_SLIDER_RGAMMA		114
+#define IDC_SLIDER_GGAMMA		115
+#define IDC_SLIDER_BGAMMA		116
+
+#define IDC_EDIT_RGAMMA			117
+#define IDC_EDIT_GGAMMA			118
+#define IDC_EDIT_BGAMMA			119
+
+#define IDC_EDIT_KEYCONFIG		120
+
+#define IDC_MYICON				2
+#ifndef IDC_STATIC
+#define IDC_STATIC				-1
+#endif
+
+#define IDC_BRIGHTNESS_LEVEL	110
+
+#define IDDEFAULT	111
+
+// 新しいオブジェクトの次の既定値
+//
+#ifdef APSTUDIO_INVOKED
+#ifndef APSTUDIO_READONLY_SYMBOLS
+
+#define _APS_NO_MFC					130
+#define _APS_NEXT_RESOURCE_VALUE	129
+#define _APS_NEXT_COMMAND_VALUE		32771
+#define _APS_NEXT_CONTROL_VALUE		1000
+#define _APS_NEXT_SYMED_VALUE		110
+#endif
+#endif
+
+#define IDR_MENU				2000
+#define IDM_SHOW				2001
+#define IDM_END					2002
+#define IDM_STOP				2003
+#define IDM_CONTROL				2004
+#define IDM_GAMMA_CONTROL		2005
+#define IDM_SHORTCUT			2006
+
+#define IDSHORTCUT				2007
+#define IDM_RESET				2008
+#define IDM_POCKEMON			2009
+#define IDM_KEYBOARD			2010
+
+#define ID_KEYBIND_LIGHTUP		2011
+#define ID_KEYBIND_LIGHTDOWN	2012
+#define ID_KEYBIND_LIGHTRESET	2013
+
+#define IDC_EDIT_KEYBIND_LIGHTUP	2014
+#define IDC_EDIT_KEYBIND_LIGHTDOWN	2015
+#define IDC_EDIT_KEYBIND_LIGHTRESET	2016
+
+#define IDM_MONITOR				2500 // 2500 - 2600 reserved for monitors

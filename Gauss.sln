@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C++ Express 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Gauss", "Gauss\Gauss.vcxproj", "{2F0B08FC-C4C8-4BB9-8A64-D15A2EEF6EB4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6E482425-08C3-4D4C-AAE9-230BCA4F5296} = {6E482425-08C3-4D4C-AAE9-230BCA4F5296}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KeyHook", "..\KeyHook\KeyHook\KeyHook.vcxproj", "{6E482425-08C3-4D4C-AAE9-230BCA4F5296}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2F0B08FC-C4C8-4BB9-8A64-D15A2EEF6EB4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{2F0B08FC-C4C8-4BB9-8A64-D15A2EEF6EB4}.Debug|Win32.Build.0 = Debug|Win32
+		{2F0B08FC-C4C8-4BB9-8A64-D15A2EEF6EB4}.Release|Win32.ActiveCfg = Release|Win32
+		{2F0B08FC-C4C8-4BB9-8A64-D15A2EEF6EB4}.Release|Win32.Build.0 = Release|Win32
+		{6E482425-08C3-4D4C-AAE9-230BCA4F5296}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6E482425-08C3-4D4C-AAE9-230BCA4F5296}.Debug|Win32.Build.0 = Debug|Win32
+		{6E482425-08C3-4D4C-AAE9-230BCA4F5296}.Release|Win32.ActiveCfg = Release|Win32
+		{6E482425-08C3-4D4C-AAE9-230BCA4F5296}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
