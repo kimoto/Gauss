@@ -1,4 +1,3 @@
-// GanmaChanger.cpp : アプリケーションのエントリ ポイントを定義します。
 #include "stdafx.h"
 #include "Gauss.h"
 #include <Windows.h>
