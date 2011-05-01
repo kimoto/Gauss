@@ -1,6 +1,4 @@
 // GanmaChanger.cpp : アプリケーションのエントリ ポイントを定義します。
-//
-
 #include "stdafx.h"
 #include "Gauss.h"
 #include <Windows.h>
@@ -24,7 +22,10 @@ __declspec(dllimport) BOOL RestartHook(void);
 __declspec(dllimport) BOOL StopHook(void);
 __declspec(dllimport) BOOL isHook(void);
 
+#include "Util.h"
+
 #define MUTEX_NAME L"Gauss"
+#define TASKTRAY_TOOLTIP_TEXT L"ガンマ値変更ツール"
 
 #define MAX_LOADSTRING 100
 #define WM_USER_MESSAGE (WM_USER+0x1000)
@@ -35,18 +36,28 @@ __declspec(dllimport) BOOL isHook(void);
 #define GAMMA_MIN_VALUE 0.0
 #define GAMMA_MAX_VALUE 5.0
 
+#define MAX_GAMMA 5.0
+#define MIN_GAMMA 0.0
+#define DEFAULT_GAMMA 1.0
+#define SLIDER_SIZE 100
+
+// 複数のアイコンを識別するためのID定数
+#define ID_TRAYICON  (1)
+
+// タスクトレイのマウスメッセージの定数
+#define WM_TASKTRAY  (WM_APP + 1)
+
 typedef struct {
-	double r;
-	double g;
-	double b;
+	double r;		// 赤
+	double g;		// 緑
+	double b;		// 青
+	double level;	// 明るさレベル(現在では未使用)
 
-	double level;
+	HDC hDC;		// モニタのデバイスコンテキスト
+	UINT monitorID;	// モニタの内部管理ID(windowメッセージとの関連付けに使用)
 
-	HDC hDC;
-	UINT monitorID;
-
-	LPWSTR monitorName;
-	LPWSTR deviceName;
+	LPWSTR monitorName;	// モニタの名前
+	LPWSTR deviceName;	// モニタのデバイスパス
 } MonitorInfo;
 
 HINSTANCE hInst;								// 現在のインターフェイス
@@ -54,8 +65,7 @@ TCHAR szTitle[MAX_LOADSTRING];					// タイトル バーのテキスト
 TCHAR szWindowClass[MAX_LOADSTRING];			// メイン ウィンドウ クラス名
 HANDLE hMutex;
 NOTIFYICONDATA nid = { 0 };
-int g_Gamma = 128;
-double g_DoubleGamma = 1.0;
+double g_gamma = 1.0;
 bool bStopedFlag = false;
 
 double g_gammaR = 1.0;
@@ -63,13 +73,13 @@ double g_gammaG = 1.0;
 double g_gammaB = 1.0;
 
 int g_hMonitorTargetIndex;
-MonitorInfo monitorInfoList[256];
+#define MAX_MONITOR_NUMBER 32
+MonitorInfo monitorInfoList[MAX_MONITOR_NUMBER];
 
 HWND g_hDlg;
 HWND g_hGammaDlg;
 HWND g_hMonitorGammaDlg;
 HWND g_hKeyConfigDlg;
-int g_brightnessLevel = 128;
 
 HDC g_deviceContexts[256];
 LPWSTR g_deviceNames[256];
@@ -80,143 +90,33 @@ int g_lightDownKey = VK_NEXT;
 int g_lightResetKey = VK_HOME;
 int g_lightOptKey = VK_CONTROL;
 
+HHOOK g_hKeyConfigHook = NULL;
+
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-void ShowLastError(void){
-	LPVOID lpMessageBuffer;
-  
-	FormatMessage(
-	FORMAT_MESSAGE_ALLOCATE_BUFFER |
-	FORMAT_MESSAGE_FROM_SYSTEM,
-	NULL,
-	GetLastError(),
-	MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // デフォルト ユーザー言語 
-	(LPTSTR) &lpMessageBuffer,
-	0,
-	NULL );
-
-	MessageBox(NULL, (LPCWSTR)lpMessageBuffer, TEXT("Error"), MB_OK);
-  
-	//... 文字列が表示されます。
-	// システムによって確保されたバッファを開放します。
-	LocalFree( lpMessageBuffer );
-}
-
-// ショートカット作成
-BOOL CreateShortcut ( LPCTSTR pszTargetPath /* ターゲットパス */,
-    LPCTSTR pszArguments /* 引数 */,
-    LPCTSTR pszWorkPath /* 作業ディレクトリ */,
-    int nCmdShow /* ShowWindowの引数 */,
-    LPCSTR pszShortcutPath /* ショートカットファイル(*.lnk)のパス */ )
-{
-    IShellLink *psl = NULL;
-    IPersistFile *ppf = NULL;
-    enum
-    {
-        MY_MAX_PATH = 65536
-    };
-    TCHAR wcLink[ MY_MAX_PATH ]=_T("");
-
-    // IShellLinkインターフェースの作成
-    HRESULT result = CoCreateInstance( CLSID_ShellLink, NULL,CLSCTX_INPROC_SERVER, IID_IShellLink, ( void ** ) &psl);
-	if(FAILED(result))
-    {
-		return result;
-	}
-
-    // 設定
-    psl->SetPath ( pszTargetPath );
-    psl->SetArguments ( pszArguments );
-    psl->SetWorkingDirectory ( pszWorkPath );
-    psl->SetShowCmd ( nCmdShow );
-
-    // IPersistFileインターフェースの作成
-    if ( FAILED ( psl->QueryInterface ( IID_IPersistFile, ( void ** ) &ppf ) ) )
-    {
-        psl->Release ();
-        return FALSE;
-    }
-    
-    // lpszLinkをWCHAR型に変換
-    MultiByteToWideChar ( CP_ACP, 0, pszShortcutPath, -1, wcLink, MY_MAX_PATH );
-    if ( FAILED ( ppf->Save ( wcLink, TRUE ) ) )
-    {
-        ppf->Release ();
-        return FALSE;
-    }
-
-	result = ppf->Save((LPCOLESTR)pszShortcutPath,TRUE);
-	
-    // 解放
-    ppf->Release ();
-    psl->Release ();
-
-    return TRUE;
-}
-
-void OutputDebugStringFormat(LPCTSTR format, LPVOID any)
-{
-	LPVOID lpMessageBuffer;
-  
-	FormatMessage(
-	FORMAT_MESSAGE_ALLOCATE_BUFFER |
-	FORMAT_MESSAGE_FROM_STRING,
-	format,
-	GetLastError(),
-	MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // デフォルト ユーザー言語 
-	(LPTSTR) &lpMessageBuffer,
-	0,
-	NULL );
-
-	::OutputDebugString((LPCWSTR)lpMessageBuffer);
-
-	//... 文字列が表示されます。
-	// システムによって確保されたバッファを開放します。
-	LocalFree( lpMessageBuffer );
-}
-
-void CheckError(BOOL b)
-{
-	if(!b) ShowLastError();
-}
-
+// 指定のデバイスコンテキストのガンマを変更する
 BOOL SetGammaCorrectMonitorRGB(HDC hdc, double gammaR, double gammaG, double gammaB)
 {
-	gammaR = 1.0 / gammaR;
-	gammaG = 1.0 / gammaG;
-	gammaB = 1.0 / gammaB;
-
-	WORD ramp[256*3];
-	for(int i=0; i<256; i++){
-		double valueR = pow((i + 1) / 256.0, gammaR) * 65536;
-		double valueG = pow((i + 1) / 256.0, gammaG) * 65536;
-		double valueB = pow((i + 1) / 256.0, gammaB) * 65536;
-		
-		if(valueR < 0) valueR = 0; if(valueR > 65535) valueR = 65535;
-		if(valueG < 0) valueG = 0; if(valueG > 65535) valueG = 65535;
-		if(valueB < 0) valueB = 0; if(valueB > 65535) valueB = 65535;
-		
-		ramp[0+i] = (WORD)valueR;
-		ramp[256+i] = (WORD)valueG;
-		ramp[512+i] = (WORD)valueB;
-	}
-	return !::SetDeviceGammaRamp(hdc, &ramp);
+	return ::SetMonitorGamma(hdc, gammaR, gammaG, gammaB);
 }
 
 BOOL SetGammaCorrectRGB(double gammaR, double gammaG, double gammaB)
 {
-	return ::SetGammaCorrectMonitorRGB(::GetDC(NULL), gammaR, gammaG, gammaB);
+	return ::SetGamma(gammaR, gammaG, gammaB);
+	//return ::SetGammaCorrectMonitorRGB(::GetDC(NULL), gammaR, gammaG, gammaB);
 }
 
 BOOL SetGammaCorrect(double gamma)
 {
-	return SetGammaCorrectRGB(gamma, gamma, gamma);
+	return ::SetGamma(gamma);
+	//return SetGammaCorrectRGB(gamma, gamma, gamma);
 }
 
+// 各モニタ間のガンマ差を意識したまま、全体としてガンマの上げ下げを行うための関数
 BOOL SetGammaCorrectRGBCareMonitor(double gammaR, double gammaG, double gammaB)
 {
 	double r = gammaR - 1.0;
@@ -233,35 +133,28 @@ BOOL SetGammaCorrectRGBCareMonitor(double gammaR, double gammaG, double gammaB)
 	return TRUE;
 }
 
-void CreateDesktopShortcutForGamma(double gamma)
+BOOL CreateDesktopShortcutForGamma(double gamma)
 {
-	LPITEMIDLIST lpidlist;
 	TCHAR desktopPath[MAX_PATH];
-	SHGetSpecialFolderLocation(NULL, CSIDL_DESKTOPDIRECTORY, &lpidlist );
-	SHGetPathFromIDList( lpidlist, desktopPath );
+	if( !::GetDesktopPath(desktopPath, MAX_PATH) )
+		return FALSE;
 
-	TCHAR szPath[_MAX_PATH]=_T("");
-	DWORD dwRet;
-
-	//初期化
-	dwRet = 0;
-	
 	//実行中のプロセスのフルパス名を取得する
-	dwRet = GetModuleFileName(NULL, (LPWSTR)szPath, sizeof(szPath));
-	if(dwRet == 0) {
-	//エラー処理など(省略)
-		;
+	TCHAR szPath[MAX_PATH];
+	if( GetModuleFileName(NULL, (LPWSTR)szPath, sizeof(szPath)) == 0 ){
+		return FALSE;
 	}
 	
-	// desktopPath + linkname
-	TCHAR linkPath[_MAX_PATH]=L"";
-	TCHAR gammaOption[256]=L"";
-	::_stprintf_s(linkPath, _MAX_PATH, L"%s\\ガンマ%.2f.lnk", (LPCTSTR)desktopPath, gamma);
-	::_stprintf_s(gammaOption, 256, L"-gamma %.1f", gamma);
+	TCHAR linkPath[MAX_PATH];
+	TCHAR gammaOption[MAX_PATH];
+	::_stprintf_s(linkPath, L"%s\\ガンマ%.2f.lnk", desktopPath, gamma);
+	::_stprintf_s(gammaOption, L"-gamma %.1f", gamma);
 
 	::CoInitialize(NULL);
-	CreateShortcut((LPCTSTR)szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
+	BOOL result = CreateShortcut(szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
 	::CoUninitialize();
+
+	return result;
 }
 
 BOOL CALLBACK MonitorEnumProc(
@@ -270,17 +163,19 @@ BOOL CALLBACK MonitorEnumProc(
   LPRECT lprcMonitor, // モニタ上の交差部分を表す長方形領域へのポインタ
   LPARAM dwData       // EnumDisplayMonitors から渡されたデータ
 ){
+#define MONITOR_WORDS MAX_PATH
+
 	// モニタの情報を取得する
     MONITORINFOEX stMonInfoEx;
     stMonInfoEx.cbSize = sizeof(stMonInfoEx);
     ::GetMonitorInfo(hMonitor, &stMonInfoEx);
 
-	LPTSTR deviceName = (LPTSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 128);
+	LPTSTR deviceName = (LPTSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, MONITOR_WORDS * sizeof(TCHAR));
 	HDC hDC = ::CreateDC(L"DISPLAY", stMonInfoEx.szDevice, NULL, NULL);
 	::wsprintf(deviceName, L"%s", stMonInfoEx.szDevice);
 
 	// モニタ名称を設定
-	LPTSTR monitorName = (LPTSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 64);
+	LPTSTR monitorName = (LPTSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, MONITOR_WORDS * sizeof(TCHAR));
 	::wsprintf(monitorName, L"モニタ%d", g_deviceContextCounter + 1);
 
 	MonitorInfo *monitor = &monitorInfoList[g_deviceContextCounter];
@@ -307,64 +202,61 @@ void RecognizeMonitors(void)
 	EnumDisplayMonitors(::GetDC(NULL), NULL, MonitorEnumProc, 0);
 }
 
-double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR path)
-{
-	TCHAR buf[256];
-	::GetPrivateProfileString(section, key, L"NOTFOUND", buf, sizeof(buf), path);
-
-	if(::wcscmp(buf, L"NOTFOUND") == 0 || ::wcscmp(buf, L"") == 0)
-		return def;
-	return ::_wtof(buf);
-}
-
-BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR path)
-{
-	TCHAR buf[256];
-	::_stprintf_s(buf, L"%.2f", val);
-	return ::WritePrivateProfileString(section, key, buf, path);
-}
-
 void LoadConfig(void)
 {
-	LPTSTR lpCurrentDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, 1024);
-	::GetCurrentDirectory(1024, lpCurrentDirectory);
+	LPTSTR lpCurrentDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
+
+	if( ::GetExecuteDirectory(lpCurrentDirectory, MAX_PATH) ) {
+		LPTSTR lpConfigPath = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
+		::wsprintf(lpConfigPath, L"%s%s", lpCurrentDirectory, L"config.ini");
 		
-	LPTSTR lpConfigPath = (LPTSTR)::GlobalAlloc(GMEM_FIXED, 1024);
-	::wsprintf(lpConfigPath, L"%s\\%s", lpCurrentDirectory, L"config.ini");
+		::g_lightUpKey = ::GetPrivateProfileInt(L"KeyBind", L"lightUpKey", VK_PRIOR, lpConfigPath);
+		::g_lightDownKey = ::GetPrivateProfileInt(L"KeyBind", L"lightDownKey", VK_NEXT, lpConfigPath);
+		::g_lightResetKey = ::GetPrivateProfileInt(L"KeyBind", L"lightResetKey", VK_HOME, lpConfigPath);
+		::g_lightOptKey = ::GetPrivateProfileInt(L"KeyBind", L"lightOptKey", VK_CONTROL, lpConfigPath);
 
-	::g_lightUpKey = ::GetPrivateProfileInt(L"KeyBind", L"lightUpKey", VK_PRIOR, lpConfigPath);
-	::g_lightDownKey = ::GetPrivateProfileInt(L"KeyBind", L"lightDownKey", VK_NEXT, lpConfigPath);
-	::g_lightResetKey = ::GetPrivateProfileInt(L"KeyBind", L"lightResetKey", VK_HOME, lpConfigPath);
-	::g_lightOptKey = ::GetPrivateProfileInt(L"KeyBind", L"lightOptKey", VK_CONTROL, lpConfigPath);
+		::g_gamma = ::GetPrivateProfileDouble(L"Gamma", L"gamma", 1.0, lpConfigPath);
+		::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", 1.0, lpConfigPath);
+		::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", 1.0, lpConfigPath);
+		::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", 1.0, lpConfigPath);
 
-	::g_DoubleGamma = ::GetPrivateProfileDouble(L"Gamma", L"gamma", 1.0, lpConfigPath);
-	::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", 1.0, lpConfigPath);
-	::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", 1.0, lpConfigPath);
-	::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", 1.0, lpConfigPath);
+		::GlobalFree(lpConfigPath);
+	}else{
+		::ShowLastError();
+	}
+
+	::GlobalFree(lpCurrentDirectory);
 }
 
 void SaveConfig(void)
 {
-	LPTSTR lpCurrentDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, 1024);
-	::GetCurrentDirectory(1024, lpCurrentDirectory);
-		
-	LPTSTR lpConfigPath = (LPTSTR)::GlobalAlloc(GMEM_FIXED, 1024);
-	::wsprintf(lpConfigPath, L"%s\\%s", lpCurrentDirectory, L"config.ini");
+	LPTSTR lpCurrentDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
 
-	TCHAR s_lightUpKey[256], s_lightDownKey[256], s_lightResetKey[256], s_lightOptKey[256];
-	::wsprintf(s_lightUpKey, L"%d", ::g_lightUpKey);
-	::wsprintf(s_lightDownKey, L"%d", ::g_lightDownKey);
-	::wsprintf(s_lightResetKey, L"%d", ::g_lightResetKey);
-	::wsprintf(s_lightOptKey, L"%d", ::g_lightOptKey);
-	::WritePrivateProfileString(L"KeyBind", L"lightUpKey", s_lightUpKey, lpConfigPath);
-	::WritePrivateProfileString(L"KeyBind", L"lightDownKey", s_lightDownKey, lpConfigPath);
-	::WritePrivateProfileString(L"KeyBind", L"lightResetKey", s_lightResetKey, lpConfigPath);
-	::WritePrivateProfileString(L"KeyBind", L"lightOptKey", s_lightOptKey, lpConfigPath);
+	if( ::GetExecuteDirectory(lpCurrentDirectory, MAX_PATH) ){
+		LPTSTR lpConfigPath = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
+		::wsprintf(lpConfigPath, L"%s\\%s", lpCurrentDirectory, L"config.ini");
 
-	::WritePrivateProfileDouble(L"Gamma", L"gamma", ::g_DoubleGamma, lpConfigPath);
-	::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);
-	::WritePrivateProfileDouble(L"Gamma", L"gammaG", ::g_gammaG, lpConfigPath);
-	::WritePrivateProfileDouble(L"Gamma", L"gammaB", ::g_gammaB, lpConfigPath);
+		TCHAR s_lightUpKey[256], s_lightDownKey[256], s_lightResetKey[256], s_lightOptKey[256];
+		::wsprintf(s_lightUpKey, L"%d", ::g_lightUpKey);
+		::wsprintf(s_lightDownKey, L"%d", ::g_lightDownKey);
+		::wsprintf(s_lightResetKey, L"%d", ::g_lightResetKey);
+		::wsprintf(s_lightOptKey, L"%d", ::g_lightOptKey);
+		::WritePrivateProfileString(L"KeyBind", L"lightUpKey", s_lightUpKey, lpConfigPath);
+		::WritePrivateProfileString(L"KeyBind", L"lightDownKey", s_lightDownKey, lpConfigPath);
+		::WritePrivateProfileString(L"KeyBind", L"lightResetKey", s_lightResetKey, lpConfigPath);
+		::WritePrivateProfileString(L"KeyBind", L"lightOptKey", s_lightOptKey, lpConfigPath);
+
+		::WritePrivateProfileDouble(L"Gamma", L"gamma", ::g_gamma, lpConfigPath);
+		::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);
+		::WritePrivateProfileDouble(L"Gamma", L"gammaG", ::g_gammaG, lpConfigPath);
+		::WritePrivateProfileDouble(L"Gamma", L"gammaB", ::g_gammaB, lpConfigPath);
+
+		::GlobalFree(lpConfigPath);
+	}else{
+		::ShowLastError();
+	}
+
+	::GlobalFree(lpCurrentDirectory);
 }
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
@@ -399,15 +291,15 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				if(wcscmp(lpOpt, L"-gamma") == 0){
 					// resetでリセットzzzz
 					if(wcscmp(lpStr, L"reset") == 0 || wcscmp(lpStr, L"default") == 0){
-						g_DoubleGamma = 1.0;
-						SetGammaCorrect(g_DoubleGamma);
+						g_gamma = 1.0;
+						SetGammaCorrect(g_gamma);
 					}else{
-						g_DoubleGamma = ::wcstod(lpStr, &lpEnd);
-						if(g_DoubleGamma == 0 && lpStr == lpEnd){
-							MessageBox(NULL, L"format error", L"test", MB_OK);
+						g_gamma = ::wcstod(lpStr, &lpEnd);
+						if(g_gamma == 0 && lpStr == lpEnd){
+							ErrorMessageBox(L"Format Error");
 							exit(-1);
 						}
-						SetGammaCorrect(g_DoubleGamma);
+						SetGammaCorrect(g_gamma);
 					}
 				}
 			}
@@ -421,9 +313,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	// 多重起動防止
 	hMutex = CreateMutex(NULL, TRUE, MUTEX_NAME);
 	if(GetLastError() == ERROR_ALREADY_EXISTS){
-		/*
-		MessageBox(NULL, TEXT("すでに起動しています"), TEXT("ERROR"), MB_OK);
-		*/
 		ReleaseMutex(hMutex);
 		CloseHandle(hMutex);
 		return FALSE;
@@ -525,12 +414,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   // 複数のアイコンを識別するためのID定数
-	#define ID_TRAYICON  (1)
-	// タスクトレイのマウスメッセージの定数
-	#define WM_TASKTRAY  (WM_APP + 1)
-	// 構造体の宣言(初期化)
-
 	// 構造体メンバの設定
 	nid.cbSize           = sizeof( NOTIFYICONDATA );
 	nid.uFlags           = (NIF_ICON|NIF_MESSAGE|NIF_TIP);
@@ -538,9 +421,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	nid.hIcon            = LoadIcon(hInst, MAKEINTRESOURCE(IDI_GANMACHANGER));          // アイコン・ハンドル
 	nid.uID              = ID_TRAYICON;    // アイコン識別子の定数
 	nid.uCallbackMessage = WM_TASKTRAY;    // 通知メッセージの定数
-	lstrcpy( nid.szTip, TEXT("ガンマ値変更ツール") );  // チップヘルプの文字列
+
+	lstrcpy( nid.szTip, TASKTRAY_TOOLTIP_TEXT );  // チップヘルプの文字列
+
 	// アイコンの変更
-	CheckError(Shell_NotifyIcon( NIM_ADD, (PNOTIFYICONDATAW)&nid ) == TRUE);
+	if( !Shell_NotifyIcon( NIM_ADD, (PNOTIFYICONDATAW)&nid ) )
+		::ShowLastError();
 
 	//ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
@@ -550,41 +436,26 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 BOOL nextGamma(void)
 {
-	g_DoubleGamma += GAMMA_INCREMENT_VALUE;
-	if(g_DoubleGamma > GAMMA_MAX_VALUE)
-		g_DoubleGamma = GAMMA_MAX_VALUE;
-	return ::SetGammaCorrectRGBCareMonitor(g_DoubleGamma, g_DoubleGamma, g_DoubleGamma);
+	g_gamma += GAMMA_INCREMENT_VALUE;
+	if(g_gamma > GAMMA_MAX_VALUE)
+		g_gamma = GAMMA_MAX_VALUE;
+	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
 }
 
 BOOL prevGamma(void)
 {
-	g_DoubleGamma -= GAMMA_DECREMENT_VALUE;
-	if(g_DoubleGamma < GAMMA_MIN_VALUE) g_DoubleGamma = GAMMA_MIN_VALUE;
-	return ::SetGammaCorrectRGBCareMonitor(g_DoubleGamma, g_DoubleGamma, g_DoubleGamma);
+	g_gamma -= GAMMA_DECREMENT_VALUE;
+	if(g_gamma < GAMMA_MIN_VALUE) g_gamma = GAMMA_MIN_VALUE;
+	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
 }
 
 BOOL resetGamma(void)
 {
-	g_DoubleGamma = GAMMA_DEFAULT_VALUE;
-	return ::SetGammaCorrectRGBCareMonitor(g_DoubleGamma, g_DoubleGamma, g_DoubleGamma);
+	g_gamma = GAMMA_DEFAULT_VALUE;
+	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
 }
 
-#define SETDOUBLE_BUFFER_SIZE 256
-BOOL SetDlgItemDouble(HWND hWnd, UINT id, double value)
-{
-	TCHAR buf[SETDOUBLE_BUFFER_SIZE]=_T("");
-	::_stprintf_s(buf, SETDOUBLE_BUFFER_SIZE, _T("%.2f"), value);
-	return ::SetDlgItemText(hWnd, id, (LPCTSTR)buf);
-}
-
-double GetDlgItemDouble(HWND hWnd, UINT id)
-{
-	TCHAR buf[SETDOUBLE_BUFFER_SIZE]=TEXT("");
-	::GetDlgItemText(hWnd, id, (LPTSTR)&buf, sizeof(buf));
-	return ::_wtof(buf);
-}
-
-// ダイアログプロシージャ
+// モニタ関係なく、すべてのデスクトップ共通のガンマ変更プロシージャ
 BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	BOOL result = false;
@@ -595,13 +466,13 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	case WM_HSCROLL:
 		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GAMMA) ){
 			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_DoubleGamma = pos * 5.00 / 100;
-			g_gammaR = g_gammaG = g_gammaB = g_DoubleGamma;
+			g_gamma = pos * 5.00 / 100;
+			g_gammaR = g_gammaG = g_gammaB = g_gamma;
 			
 			// 各モニタのガンマを意識したまま全体のガンマの上げ下げをする
 			::SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 			
-			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_DoubleGamma);
+			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
@@ -631,12 +502,12 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	case WM_MOUSEWHEEL:
 		break;
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
-		::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_DoubleGamma);
+		::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
 
-		::SendDlgItemMessageA(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_DoubleGamma / (5.00 / 100)));
+		::SendDlgItemMessageA(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_gamma / (5.00 / 100)));
 		::SendDlgItemMessageA(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (5.00 / 100)));
 		::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (5.00 / 100)));
 		::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (5.00 / 100)));
@@ -656,22 +527,22 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			g_hGammaDlg = NULL;
 			break;
 		case IDDEFAULT:
-			g_DoubleGamma = g_gammaR = g_gammaG = g_gammaB = 1.0;
+			g_gamma = g_gammaR = g_gammaG = g_gammaB = 1.0;
 			SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 
-			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_DoubleGamma);
+			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
-			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_DoubleGamma / (5.00 / 100)));
+			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_gamma / (5.00 / 100)));
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (5.00 / 100)));
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (5.00 / 100)));
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (5.00 / 100)));
 
-			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_DoubleGamma);
+			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 			break;
 		case IDSHORTCUT: // ショートカット作成
-			CreateDesktopShortcutForGamma(g_DoubleGamma);
+			CreateDesktopShortcutForGamma(g_gamma);
 			break;
 		}
 		return TRUE;
@@ -688,11 +559,7 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 
 
 
-// ダイアログプロシージャ
-#define MAX_GAMMA 5.0
-#define MIN_GAMMA 0.0
-#define DEFAULT_GAMMA 1.0
-#define SLIDER_SIZE 100
+// モニタごとのガンマ変更プロシージャ
 BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	BOOL result = false;
@@ -748,7 +615,7 @@ BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
 
-			// タイトルをモニタとわかるようなものに
+			// ウインドウのタイトルをどのモニタかわかるようなものに
 			TCHAR buf[256];
 			::wsprintf((LPTSTR)buf, (LPCTSTR)_T("%sのガンマ調節"), monitor->monitorName);
 			::SetWindowText(hDlg, buf);
@@ -819,6 +686,7 @@ BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	return FALSE;  // DefWindowProc()ではなく、FALSEを返すこと！
 }
 
+// キーフックのトグル
 BOOL stopOrResume(HWND hWnd)
 {
 	bStopedFlag = !bStopedFlag;
@@ -838,26 +706,6 @@ BOOL stopOrResume(HWND hWnd)
 	return bStopedFlag;
 }
 
-double colors[][3] = {{2.0, 1.0, 1.0}, {1.0, 2.0, 1.0}, {1.0, 1.0, 2.0}};
-int colorIndex = 0;
-
-VOID CALLBACK TimerProc(
-  HWND hwnd,         // ウィンドウのハンドル
-  UINT uMsg,         // WM_TIMER メッセージ
-  UINT_PTR idEvent,  // タイマの識別子
-  DWORD dwTime       // 現在のシステム時刻
-){
-	if(colorIndex >= 3){
-		colorIndex = 0;
-	}
-
-	::SetGammaCorrectMonitorRGB(::GetDC(NULL), colors[colorIndex][0], colors[colorIndex][1], colors[colorIndex][2]);
-	colorIndex++;
-	return;
-}
-
-HHOOK g_hKeyConfigHook = NULL;
-
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
 {
 	//nCodeが0未満のときは、CallNextHookExが返した値を返す
@@ -875,33 +723,6 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
 		}
     }
     return CallNextHookEx(g_hKeyConfigHook,nCode,wp,lp);
-}
-
-LPTSTR GetKeyNameTextEx(UINT vk)
-{
-	UINT uScanCode = ::MapVirtualKey(vk, 0);
-	LPARAM lParam = (uScanCode << 16);
-
-	switch (vk) {
-	case VK_LEFT:
-	case VK_UP:
-	case VK_RIGHT:
-	case VK_DOWN:
-	case VK_PRIOR:
-	case VK_NEXT:
-	case VK_END:
-	case VK_HOME:
-	case VK_INSERT:
-	case VK_DELETE:
-	case VK_DIVIDE:
-	case VK_NUMLOCK:
-		lParam = (uScanCode << 16) | (1 << 24);
-		break;
-	}
-
-	LPTSTR buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
-	::GetKeyNameText(lParam, buffer, 256);
-	return buffer;
 }
 
 BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
@@ -1214,12 +1035,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case IDM_SHORTCUT:
-			CreateDesktopShortcutForGamma(g_DoubleGamma);
+			CreateDesktopShortcutForGamma(g_gamma);
 			break;
 
 		case IDM_RESET:
 			g_gammaR = g_gammaG = g_gammaB = 1.0;
-			g_DoubleGamma = 1.0;
+			g_gamma = 1.0;
 			for(int i=0; i<g_deviceContextCounter; i++){
 				monitorInfoList[i].r = 1.0;
 				monitorInfoList[i].g = 1.0;
@@ -1228,24 +1049,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				::SetGammaCorrectMonitorRGB(monitorInfoList[i].hDC, 1.0, 1.0, 1.0);
 			}
 			break;
-
-		case IDM_POCKEMON:
-			if(timer != NULL){
-				KillTimer(NULL, timer);
-				timer = NULL;
-				::resetGamma();
-			}else{
-				timer = SetTimer(NULL, 0, 500, TimerProc);
-			}
-			break;
-
+			
 		case IDM_STOP:
 			stopOrResume(hWnd);
 			break;
+
 		case IDM_KEYBOARD:
 			if(!g_hKeyConfigDlg)
 				g_hKeyConfigDlg = CreateDialog(hInst, TEXT("IDD_KEYCONFIG_DIALOG"), hWnd, &DlgKeyConfigProc);
 			break;
+
 		default:
 			if(IDM_MONITOR <= wmId && wmId <= IDM_MONITOR + 100){
 				int monitorId = wmId - IDM_MONITOR;
