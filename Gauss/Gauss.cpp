@@ -1,4 +1,4 @@
-#include "stdafx.h"
+ï»¿#include "stdafx.h"
 #include "Gauss.h"
 #include <Windows.h>
 #include <ShellAPI.h>
@@ -24,7 +24,7 @@ __declspec(dllimport) BOOL isHook(void);
 #include "Util.h"
 
 #define MUTEX_NAME L"Gauss"
-#define TASKTRAY_TOOLTIP_TEXT L"ƒKƒ“ƒ}’l•ÏXƒc[ƒ‹"
+#define TASKTRAY_TOOLTIP_TEXT L"ã‚¬ãƒ³ãƒå€¤å¤‰æ›´ãƒ„ãƒ¼ãƒ«"
 
 #define MAX_LOADSTRING 100
 #define WM_USER_MESSAGE (WM_USER+0x1000)
@@ -40,28 +40,28 @@ __declspec(dllimport) BOOL isHook(void);
 #define DEFAULT_GAMMA 1.0
 #define SLIDER_SIZE 100
 
-// •¡”‚ÌƒAƒCƒRƒ“‚ğ¯•Ê‚·‚é‚½‚ß‚ÌID’è”
+// è¤‡æ•°ã®ã‚¢ã‚¤ã‚³ãƒ³ã‚’è­˜åˆ¥ã™ã‚‹ãŸã‚ã®IDå®šæ•°
 #define ID_TRAYICON  (1)
 
-// ƒ^ƒXƒNƒgƒŒƒC‚Ìƒ}ƒEƒXƒƒbƒZ[ƒW‚Ì’è”
+// ã‚¿ã‚¹ã‚¯ãƒˆãƒ¬ã‚¤ã®ãƒã‚¦ã‚¹ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®å®šæ•°
 #define WM_TASKTRAY  (WM_APP + 1)
 
 typedef struct {
-	double r;		// Ô
-	double g;		// —Î
-	double b;		// Â
-	double level;	// –¾‚é‚³ƒŒƒxƒ‹(Œ»İ‚Å‚Í–¢g—p)
+	double r;		// èµ¤
+	double g;		// ç·‘
+	double b;		// é’
+	double level;	// æ˜ã‚‹ã•ãƒ¬ãƒ™ãƒ«(ç¾åœ¨ã§ã¯æœªä½¿ç”¨)
 
-	HDC hDC;		// ƒ‚ƒjƒ^‚ÌƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg
-	UINT monitorID;	// ƒ‚ƒjƒ^‚Ì“à•”ŠÇ—ID(windowƒƒbƒZ[ƒW‚Æ‚ÌŠÖ˜A•t‚¯‚Ég—p)
+	HDC hDC;		// ãƒ¢ãƒ‹ã‚¿ã®ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆ
+	UINT monitorID;	// ãƒ¢ãƒ‹ã‚¿ã®å†…éƒ¨ç®¡ç†ID(windowãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã¨ã®é–¢é€£ä»˜ã‘ã«ä½¿ç”¨)
 
-	LPWSTR monitorName;	// ƒ‚ƒjƒ^‚Ì–¼‘O
-	LPWSTR deviceName;	// ƒ‚ƒjƒ^‚ÌƒfƒoƒCƒXƒpƒX
+	LPWSTR monitorName;	// ãƒ¢ãƒ‹ã‚¿ã®åå‰
+	LPWSTR deviceName;	// ãƒ¢ãƒ‹ã‚¿ã®ãƒ‡ãƒã‚¤ã‚¹ãƒ‘ã‚¹
 } MonitorInfo;
 
-HINSTANCE hInst;								// Œ»İ‚ÌƒCƒ“ƒ^[ƒtƒFƒCƒX
-TCHAR szTitle[MAX_LOADSTRING];					// ƒ^ƒCƒgƒ‹ ƒo[‚ÌƒeƒLƒXƒg
-TCHAR szWindowClass[MAX_LOADSTRING];			// ƒƒCƒ“ ƒEƒBƒ“ƒhƒE ƒNƒ‰ƒX–¼
+HINSTANCE hInst;								// ç¾åœ¨ã®ã‚¤ãƒ³ã‚¿ãƒ¼ãƒ•ã‚§ã‚¤ã‚¹
+TCHAR szTitle[MAX_LOADSTRING];					// ã‚¿ã‚¤ãƒˆãƒ« ãƒãƒ¼ã®ãƒ†ã‚­ã‚¹ãƒˆ
+TCHAR szWindowClass[MAX_LOADSTRING];			// ãƒ¡ã‚¤ãƒ³ ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ ã‚¯ãƒ©ã‚¹å
 HANDLE hMutex;
 NOTIFYICONDATA nid = { 0 };
 double g_gamma = 1.0;
@@ -91,13 +91,13 @@ int g_lightOptKey = VK_CONTROL;
 
 HHOOK g_hKeyConfigHook = NULL;
 
-// ‚±‚ÌƒR[ƒh ƒ‚ƒWƒ…[ƒ‹‚ÉŠÜ‚Ü‚ê‚éŠÖ”‚ÌéŒ¾‚ğ“]‘—‚µ‚Ü‚·:
+// ã“ã®ã‚³ãƒ¼ãƒ‰ ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã«å«ã¾ã‚Œã‚‹é–¢æ•°ã®å®£è¨€ã‚’è»¢é€ã—ã¾ã™:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-// w’è‚ÌƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg‚ÌƒKƒ“ƒ}‚ğ•ÏX‚·‚é
+// æŒ‡å®šã®ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã®ã‚¬ãƒ³ãƒã‚’å¤‰æ›´ã™ã‚‹
 BOOL SetGammaCorrectMonitorRGB(HDC hdc, double gammaR, double gammaG, double gammaB)
 {
 	return ::SetMonitorGamma(hdc, gammaR, gammaG, gammaB);
@@ -115,7 +115,7 @@ BOOL SetGammaCorrect(double gamma)
 	//return SetGammaCorrectRGB(gamma, gamma, gamma);
 }
 
-// Šeƒ‚ƒjƒ^ŠÔ‚ÌƒKƒ“ƒ}·‚ğˆÓ¯‚µ‚½‚Ü‚ÜA‘S‘Ì‚Æ‚µ‚ÄƒKƒ“ƒ}‚Ìã‚°‰º‚°‚ğs‚¤‚½‚ß‚ÌŠÖ”
+// å„ãƒ¢ãƒ‹ã‚¿é–“ã®ã‚¬ãƒ³ãƒå·®ã‚’æ„è­˜ã—ãŸã¾ã¾ã€å…¨ä½“ã¨ã—ã¦ã‚¬ãƒ³ãƒã®ä¸Šã’ä¸‹ã’ã‚’è¡Œã†ãŸã‚ã®é–¢æ•°
 BOOL SetGammaCorrectRGBCareMonitor(double gammaR, double gammaG, double gammaB)
 {
 	double r = gammaR - 1.0;
@@ -138,7 +138,7 @@ BOOL CreateDesktopShortcutForGamma(double gamma)
 	if( !::GetDesktopPath(desktopPath, MAX_PATH) )
 		return FALSE;
 
-	//Às’†‚ÌƒvƒƒZƒX‚Ìƒtƒ‹ƒpƒX–¼‚ğæ“¾‚·‚é
+	//å®Ÿè¡Œä¸­ã®ãƒ—ãƒ­ã‚»ã‚¹ã®ãƒ•ãƒ«ãƒ‘ã‚¹åã‚’å–å¾—ã™ã‚‹
 	TCHAR szPath[MAX_PATH];
 	if( GetModuleFileName(NULL, (LPWSTR)szPath, sizeof(szPath)) == 0 ){
 		return FALSE;
@@ -146,7 +146,7 @@ BOOL CreateDesktopShortcutForGamma(double gamma)
 	
 	TCHAR linkPath[MAX_PATH];
 	TCHAR gammaOption[MAX_PATH];
-	::_stprintf_s(linkPath, L"%s\\ƒKƒ“ƒ}%.2f.lnk", desktopPath, gamma);
+	::_stprintf_s(linkPath, L"%s\\ã‚¬ãƒ³ãƒ%.2f.lnk", desktopPath, gamma);
 	::_stprintf_s(gammaOption, L"-gamma %.1f", gamma);
 
 	::CoInitialize(NULL);
@@ -157,14 +157,14 @@ BOOL CreateDesktopShortcutForGamma(double gamma)
 }
 
 BOOL CALLBACK MonitorEnumProc(
-  HMONITOR hMonitor,  // ƒfƒBƒXƒvƒŒƒCƒ‚ƒjƒ^‚Ìƒnƒ“ƒhƒ‹
-  HDC hdcMonitor,     // ƒ‚ƒjƒ^‚É“K‚µ‚½ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg‚Ìƒnƒ“ƒhƒ‹
-  LPRECT lprcMonitor, // ƒ‚ƒjƒ^ã‚ÌŒğ·•”•ª‚ğ•\‚·’·•ûŒ`—Ìˆæ‚Ö‚Ìƒ|ƒCƒ“ƒ^
-  LPARAM dwData       // EnumDisplayMonitors ‚©‚ç“n‚³‚ê‚½ƒf[ƒ^
+  HMONITOR hMonitor,  // ãƒ‡ã‚£ã‚¹ãƒ—ãƒ¬ã‚¤ãƒ¢ãƒ‹ã‚¿ã®ãƒãƒ³ãƒ‰ãƒ«
+  HDC hdcMonitor,     // ãƒ¢ãƒ‹ã‚¿ã«é©ã—ãŸãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã®ãƒãƒ³ãƒ‰ãƒ«
+  LPRECT lprcMonitor, // ãƒ¢ãƒ‹ã‚¿ä¸Šã®äº¤å·®éƒ¨åˆ†ã‚’è¡¨ã™é•·æ–¹å½¢é ˜åŸŸã¸ã®ãƒã‚¤ãƒ³ã‚¿
+  LPARAM dwData       // EnumDisplayMonitors ã‹ã‚‰æ¸¡ã•ã‚ŒãŸãƒ‡ãƒ¼ã‚¿
 ){
 #define MONITOR_WORDS MAX_PATH
 
-	// ƒ‚ƒjƒ^‚Ìî•ñ‚ğæ“¾‚·‚é
+	// ãƒ¢ãƒ‹ã‚¿ã®æƒ…å ±ã‚’å–å¾—ã™ã‚‹
     MONITORINFOEX stMonInfoEx;
     stMonInfoEx.cbSize = sizeof(stMonInfoEx);
     ::GetMonitorInfo(hMonitor, &stMonInfoEx);
@@ -173,24 +173,24 @@ BOOL CALLBACK MonitorEnumProc(
 	HDC hDC = ::CreateDC(L"DISPLAY", stMonInfoEx.szDevice, NULL, NULL);
 	::wsprintf(deviceName, L"%s", stMonInfoEx.szDevice);
 
-	// ƒ‚ƒjƒ^–¼Ì‚ğİ’è
+	// ãƒ¢ãƒ‹ã‚¿åç§°ã‚’è¨­å®š
 	LPTSTR monitorName = (LPTSTR)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, MONITOR_WORDS * sizeof(TCHAR));
-	::wsprintf(monitorName, L"ƒ‚ƒjƒ^%d", g_deviceContextCounter + 1);
+	::wsprintf(monitorName, L"ãƒ¢ãƒ‹ã‚¿%d", g_deviceContextCounter + 1);
 
 	MonitorInfo *monitor = &monitorInfoList[g_deviceContextCounter];
 	monitor->hDC = hDC;
-	monitor->deviceName = deviceName; // HDC‚Ég‚¦‚éƒfƒoƒCƒX–¼
-	monitor->monitorName = monitorName; // lŠÔŒü‚¯ƒfƒoƒCƒX–¼
+	monitor->deviceName = deviceName; // HDCã«ä½¿ãˆã‚‹ãƒ‡ãƒã‚¤ã‚¹å
+	monitor->monitorName = monitorName; // äººé–“å‘ã‘ãƒ‡ãƒã‚¤ã‚¹å
 	monitor->r = monitor->g = monitor->b = monitor->level = GAMMA_DEFAULT_VALUE;
 	g_deviceContextCounter++;
 
 	return TRUE;
 }
 
-// ƒ‚ƒjƒ^‚Ì”‚Æ–¼‘O‚ğÄ”F¯‚·‚é
+// ãƒ¢ãƒ‹ã‚¿ã®æ•°ã¨åå‰ã‚’å†èªè­˜ã™ã‚‹
 void RecognizeMonitors(void)
 {
-	// ‚·‚Å‚ÉŠm•Û‚³‚ê‚Ä‚éƒƒ‚ƒŠ‚ğ‰ğ•ú‚·‚é
+	// ã™ã§ã«ç¢ºä¿ã•ã‚Œã¦ã‚‹ãƒ¡ãƒ¢ãƒªã‚’è§£æ”¾ã™ã‚‹
 	for(int i=0; i<g_deviceContextCounter; i++){
 		::DeleteDC(monitorInfoList[i].hDC);
 		::GlobalFree(monitorInfoList[i].deviceName);
@@ -266,9 +266,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	// ‘½d‹N“®–h~‚Ì‘O‚Éˆø”‚É–¾‚é‚³î•ñ‚ªw’è‚³‚ê‚Ä‚¢‚½‚ç
-	// ‚»‚ê‚ğ—˜—p‚µ‚Ä‚·‚®‚É–¾‚é‚³‚ğ•ÏX‚Å‚«‚é‚æ‚¤‚É‚·‚é
-	// ‚±‚ê‚Í‘½d‹N“®‚µ‚Ä‚à‚æ‚¢‚à‚Ì‚Æ‚·‚é
+	// å¤šé‡èµ·å‹•é˜²æ­¢ã®å‰ã«å¼•æ•°ã«æ˜ã‚‹ã•æƒ…å ±ãŒæŒ‡å®šã•ã‚Œã¦ã„ãŸã‚‰
+	// ãã‚Œã‚’åˆ©ç”¨ã—ã¦ã™ãã«æ˜ã‚‹ã•ã‚’å¤‰æ›´ã§ãã‚‹ã‚ˆã†ã«ã™ã‚‹
+	// ã“ã‚Œã¯å¤šé‡èµ·å‹•ã—ã¦ã‚‚ã‚ˆã„ã‚‚ã®ã¨ã™ã‚‹
 	int    i;
 	int    nArgs;
 	LPTSTR *lplpszArgs;
@@ -278,17 +278,17 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	if( nArgs == 1 ){
 		;
 	}else{
-		// ‚È‚ñ‚©ˆø”‚ ‚èAˆø”‚Æ’l‚ÌƒyƒA‚Ì”‚ª‚¿‚á‚ñ‚Æ‚µ‚Ä‚é‚©ƒ`ƒFƒbƒN
+		// ãªã‚“ã‹å¼•æ•°ã‚ã‚Šã€å¼•æ•°ã¨å€¤ã®ãƒšã‚¢ã®æ•°ãŒã¡ã‚ƒã‚“ã¨ã—ã¦ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
 		if( (nArgs - 1) % 2 == 0 ){
-			// ƒpƒ‰ƒ[ƒ^[‚Ì”‚ª‚ ‚Á‚Ä‚é‚Ì‚Å’†g‚ª‡‚Á‚Ä‚é‚©‚Æ‚©ˆÓ–¡‚ª‚ ‚Á‚Ä‚é‚©‚Ìƒ`ƒFƒbƒN
+			// ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ãƒ¼ã®æ•°ãŒã‚ã£ã¦ã‚‹ã®ã§ä¸­èº«ãŒåˆã£ã¦ã‚‹ã‹ã¨ã‹æ„å‘³ãŒã‚ã£ã¦ã‚‹ã‹ã®ãƒã‚§ãƒƒã‚¯
 			for(i=1; i<nArgs; i+=2){
 				LPTSTR lpOpt = lplpszArgs[i];
 				LPTSTR lpStr = lplpszArgs[i+1];
 				LPTSTR lpEnd = NULL;
 
-				// gammaw’è‚ª‚ ‚Á‚½‚ç‚»‚ÌƒKƒ“ƒ}‚Éİ’è‚·‚é
+				// gammaæŒ‡å®šãŒã‚ã£ãŸã‚‰ãã®ã‚¬ãƒ³ãƒã«è¨­å®šã™ã‚‹
 				if(wcscmp(lpOpt, L"-gamma") == 0){
-					// reset‚ÅƒŠƒZƒbƒgzzzz
+					// resetã§ãƒªã‚»ãƒƒãƒˆzzzz
 					if(wcscmp(lpStr, L"reset") == 0 || wcscmp(lpStr, L"default") == 0){
 						g_gamma = 1.0;
 						SetGammaCorrect(g_gamma);
@@ -309,7 +309,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	LocalFree(lplpszArgs);
 
-	// ‘½d‹N“®–h~
+	// å¤šé‡èµ·å‹•é˜²æ­¢
 	hMutex = CreateMutex(NULL, TRUE, MUTEX_NAME);
 	if(GetLastError() == ERROR_ALREADY_EXISTS){
 		ReleaseMutex(hMutex);
@@ -317,18 +317,18 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		return FALSE;
 	}
 
-	// config.ini‚ğ“Ç‚İ‚ñ‚Åİ’è‚ğ”½‰f‚µ‚Ü‚·
+	// config.iniã‚’èª­ã¿è¾¼ã‚“ã§è¨­å®šã‚’åæ˜ ã—ã¾ã™
 	LoadConfig();
 
 	MSG msg;
 	HACCEL hAccelTable;
 
-	// ƒOƒ[ƒoƒ‹•¶š—ñ‚ğ‰Šú‰»‚µ‚Ä‚¢‚Ü‚·B
+	// ã‚°ãƒ­ãƒ¼ãƒãƒ«æ–‡å­—åˆ—ã‚’åˆæœŸåŒ–ã—ã¦ã„ã¾ã™ã€‚
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadString(hInstance, IDC_GANMACHANGER, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
-	// ƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚Ì‰Šú‰»‚ğÀs‚µ‚Ü‚·:
+	// ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ã®åˆæœŸåŒ–ã‚’å®Ÿè¡Œã—ã¾ã™:
 	if (!InitInstance (hInstance, nCmdShow))
 	{
 		return FALSE;
@@ -336,7 +336,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_GANMACHANGER));
 
-	// ƒƒCƒ“ ƒƒbƒZ[ƒW ƒ‹[ƒv:
+	// ãƒ¡ã‚¤ãƒ³ ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ ãƒ«ãƒ¼ãƒ—:
 	while (GetMessage(&msg, NULL, 0, 0))
 	{
 		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
@@ -357,17 +357,17 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 
 //
-//  ŠÖ”: MyRegisterClass()
+//  é–¢æ•°: MyRegisterClass()
 //
-//  –Ú“I: ƒEƒBƒ“ƒhƒE ƒNƒ‰ƒX‚ğ“o˜^‚µ‚Ü‚·B
+//  ç›®çš„: ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ ã‚¯ãƒ©ã‚¹ã‚’ç™»éŒ²ã—ã¾ã™ã€‚
 //
-//  ƒRƒƒ“ƒg:
+//  ã‚³ãƒ¡ãƒ³ãƒˆ:
 //
-//    ‚±‚ÌŠÖ”‚¨‚æ‚Ñg‚¢•û‚ÍA'RegisterClassEx' ŠÖ”‚ª’Ç‰Á‚³‚ê‚½
-//    Windows 95 ‚æ‚è‘O‚Ì Win32 ƒVƒXƒeƒ€‚ÆŒİŠ·‚³‚¹‚éê‡‚É‚Ì‚İ•K—v‚Å‚·B
-//    ƒAƒvƒŠƒP[ƒVƒ‡ƒ“‚ªAŠÖ˜A•t‚¯‚ç‚ê‚½
-//    ³‚µ‚¢Œ`®‚Ì¬‚³‚¢ƒAƒCƒRƒ“‚ğæ“¾‚Å‚«‚é‚æ‚¤‚É‚·‚é‚É‚ÍA
-//    ‚±‚ÌŠÖ”‚ğŒÄ‚Ño‚µ‚Ä‚­‚¾‚³‚¢B
+//    ã“ã®é–¢æ•°ãŠã‚ˆã³ä½¿ã„æ–¹ã¯ã€'RegisterClassEx' é–¢æ•°ãŒè¿½åŠ ã•ã‚ŒãŸ
+//    Windows 95 ã‚ˆã‚Šå‰ã® Win32 ã‚·ã‚¹ãƒ†ãƒ ã¨äº’æ›ã•ã›ã‚‹å ´åˆã«ã®ã¿å¿…è¦ã§ã™ã€‚
+//    ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ãŒã€é–¢é€£ä»˜ã‘ã‚‰ã‚ŒãŸ
+//    æ­£ã—ã„å½¢å¼ã®å°ã•ã„ã‚¢ã‚¤ã‚³ãƒ³ã‚’å–å¾—ã§ãã‚‹ã‚ˆã†ã«ã™ã‚‹ã«ã¯ã€
+//    ã“ã®é–¢æ•°ã‚’å‘¼ã³å‡ºã—ã¦ãã ã•ã„ã€‚
 //
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
@@ -390,20 +390,20 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 }
 
 //
-//   ŠÖ”: InitInstance(HINSTANCE, int)
+//   é–¢æ•°: InitInstance(HINSTANCE, int)
 //
-//   –Ú“I: ƒCƒ“ƒXƒ^ƒ“ƒX ƒnƒ“ƒhƒ‹‚ğ•Û‘¶‚µ‚ÄAƒƒCƒ“ ƒEƒBƒ“ƒhƒE‚ğì¬‚µ‚Ü‚·B
+//   ç›®çš„: ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ ãƒãƒ³ãƒ‰ãƒ«ã‚’ä¿å­˜ã—ã¦ã€ãƒ¡ã‚¤ãƒ³ ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’ä½œæˆã—ã¾ã™ã€‚
 //
-//   ƒRƒƒ“ƒg:
+//   ã‚³ãƒ¡ãƒ³ãƒˆ:
 //
-//        ‚±‚ÌŠÖ”‚ÅAƒOƒ[ƒoƒ‹•Ï”‚ÅƒCƒ“ƒXƒ^ƒ“ƒX ƒnƒ“ƒhƒ‹‚ğ•Û‘¶‚µA
-//        ƒƒCƒ“ ƒvƒƒOƒ‰ƒ€ ƒEƒBƒ“ƒhƒE‚ğì¬‚¨‚æ‚Ñ•\¦‚µ‚Ü‚·B
+//        ã“ã®é–¢æ•°ã§ã€ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°ã§ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ ãƒãƒ³ãƒ‰ãƒ«ã‚’ä¿å­˜ã—ã€
+//        ãƒ¡ã‚¤ãƒ³ ãƒ—ãƒ­ã‚°ãƒ©ãƒ  ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’ä½œæˆãŠã‚ˆã³è¡¨ç¤ºã—ã¾ã™ã€‚
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    HWND hWnd;
 
-   hInst = hInstance; // ƒOƒ[ƒoƒ‹•Ï”‚ÉƒCƒ“ƒXƒ^ƒ“ƒXˆ—‚ğŠi”[‚µ‚Ü‚·B
+   hInst = hInstance; // ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°ã«ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹å‡¦ç†ã‚’æ ¼ç´ã—ã¾ã™ã€‚
 
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
       CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
@@ -413,17 +413,17 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-	// \‘¢‘Ìƒƒ“ƒo‚Ìİ’è
+	// æ§‹é€ ä½“ãƒ¡ãƒ³ãƒã®è¨­å®š
 	nid.cbSize           = sizeof( NOTIFYICONDATA );
 	nid.uFlags           = (NIF_ICON|NIF_MESSAGE|NIF_TIP);
-	nid.hWnd             = hWnd;           // ƒEƒCƒ“ƒhƒEEƒnƒ“ƒhƒ‹
-	nid.hIcon            = LoadIcon(hInst, MAKEINTRESOURCE(IDI_GANMACHANGER));          // ƒAƒCƒRƒ“Eƒnƒ“ƒhƒ‹
-	nid.uID              = ID_TRAYICON;    // ƒAƒCƒRƒ“¯•Êq‚Ì’è”
-	nid.uCallbackMessage = WM_TASKTRAY;    // ’Ê’mƒƒbƒZ[ƒW‚Ì’è”
+	nid.hWnd             = hWnd;           // ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ãƒ»ãƒãƒ³ãƒ‰ãƒ«
+	nid.hIcon            = LoadIcon(hInst, MAKEINTRESOURCE(IDI_GANMACHANGER));          // ã‚¢ã‚¤ã‚³ãƒ³ãƒ»ãƒãƒ³ãƒ‰ãƒ«
+	nid.uID              = ID_TRAYICON;    // ã‚¢ã‚¤ã‚³ãƒ³è­˜åˆ¥å­ã®å®šæ•°
+	nid.uCallbackMessage = WM_TASKTRAY;    // é€šçŸ¥ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã®å®šæ•°
 
-	lstrcpy( nid.szTip, TASKTRAY_TOOLTIP_TEXT );  // ƒ`ƒbƒvƒwƒ‹ƒv‚Ì•¶š—ñ
+	lstrcpy( nid.szTip, TASKTRAY_TOOLTIP_TEXT );  // ãƒãƒƒãƒ—ãƒ˜ãƒ«ãƒ—ã®æ–‡å­—åˆ—
 
-	// ƒAƒCƒRƒ“‚Ì•ÏX
+	// ã‚¢ã‚¤ã‚³ãƒ³ã®å¤‰æ›´
 	if( !Shell_NotifyIcon( NIM_ADD, (PNOTIFYICONDATAW)&nid ) )
 		::ShowLastError();
 
@@ -454,7 +454,7 @@ BOOL resetGamma(void)
 	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
 }
 
-// ƒ‚ƒjƒ^ŠÖŒW‚È‚­A‚·‚×‚Ä‚ÌƒfƒXƒNƒgƒbƒv‹¤’Ê‚ÌƒKƒ“ƒ}•ÏXƒvƒƒV[ƒWƒƒ
+// ãƒ¢ãƒ‹ã‚¿é–¢ä¿‚ãªãã€ã™ã¹ã¦ã®ãƒ‡ã‚¹ã‚¯ãƒˆãƒƒãƒ—å…±é€šã®ã‚¬ãƒ³ãƒå¤‰æ›´ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£
 BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	BOOL result = false;
@@ -468,7 +468,7 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			g_gamma = pos * 5.00 / 100;
 			g_gammaR = g_gammaG = g_gammaB = g_gamma;
 			
-			// Šeƒ‚ƒjƒ^‚ÌƒKƒ“ƒ}‚ğˆÓ¯‚µ‚½‚Ü‚Ü‘S‘Ì‚ÌƒKƒ“ƒ}‚Ìã‚°‰º‚°‚ğ‚·‚é
+			// å„ãƒ¢ãƒ‹ã‚¿ã®ã‚¬ãƒ³ãƒã‚’æ„è­˜ã—ãŸã¾ã¾å…¨ä½“ã®ã‚¬ãƒ³ãƒã®ä¸Šã’ä¸‹ã’ã‚’ã™ã‚‹
 			::SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 			
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
@@ -500,7 +500,7 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		break;
 	case WM_MOUSEWHEEL:
 		break;
-	case WM_INITDIALOG:  // ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ªì¬‚³‚ê‚½‚Æ‚«
+	case WM_INITDIALOG:  // ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ãŒä½œæˆã•ã‚ŒãŸã¨ã
 		::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
@@ -511,17 +511,17 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (5.00 / 100)));
 		::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (5.00 / 100)));
 
-		// í‚ÉÅ‘O–Ê‚É•\¦
+		// å¸¸ã«æœ€å‰é¢ã«è¡¨ç¤º
 		::SetWindowPos(hDlg, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 		return TRUE;
 
-	case WM_COMMAND:     // ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX“à‚Ì‰½‚©‚ª‘I‘ğ‚³‚ê‚½‚Æ‚«
+	case WM_COMMAND:     // ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹å†…ã®ä½•ã‹ãŒé¸æŠã•ã‚ŒãŸã¨ã
 		switch( LOWORD( wp ) ){
-		case IDOK:       // uOKvƒ{ƒ^ƒ“‚ª‘I‘ğ‚³‚ê‚½
+		case IDOK:       // ã€ŒOKã€ãƒœã‚¿ãƒ³ãŒé¸æŠã•ã‚ŒãŸ
 			SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 			break;
-		case IDCANCEL:   // uƒLƒƒƒ“ƒZƒ‹vƒ{ƒ^ƒ“‚ª‘I‘ğ‚³‚ê‚½
-			// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ğÁ‚·
+		case IDCANCEL:   // ã€Œã‚­ãƒ£ãƒ³ã‚»ãƒ«ã€ãƒœã‚¿ãƒ³ãŒé¸æŠã•ã‚ŒãŸ
+			// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ã‚’æ¶ˆã™
 			EndDialog(g_hGammaDlg, LOWORD(wp));
 			g_hGammaDlg = NULL;
 			break;
@@ -540,25 +540,25 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 			break;
-		case IDSHORTCUT: // ƒVƒ‡[ƒgƒJƒbƒgì¬
+		case IDSHORTCUT: // ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆä½œæˆ
 			CreateDesktopShortcutForGamma(g_gamma);
 			break;
 		}
 		return TRUE;
 
-	case WM_CLOSE:		// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ª•Â‚¶‚ç‚ê‚é‚Æ‚«
-		// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ğÁ‚·
+	case WM_CLOSE:		// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ãŒé–‰ã˜ã‚‰ã‚Œã‚‹ã¨ã
+		// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ã‚’æ¶ˆã™
 		EndDialog(g_hGammaDlg, LOWORD(wp));
 		g_hGammaDlg = NULL;
 		return TRUE;
 	}
 
-	return FALSE;  // DefWindowProc()‚Å‚Í‚È‚­AFALSE‚ğ•Ô‚·‚±‚ÆI
+	return FALSE;  // DefWindowProc()ã§ã¯ãªãã€FALSEã‚’è¿”ã™ã“ã¨ï¼
 }
 
 
 
-// ƒ‚ƒjƒ^‚²‚Æ‚ÌƒKƒ“ƒ}•ÏXƒvƒƒV[ƒWƒƒ
+// ãƒ¢ãƒ‹ã‚¿ã”ã¨ã®ã‚¬ãƒ³ãƒå¤‰æ›´ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£
 BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	BOOL result = false;
@@ -600,7 +600,7 @@ BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		break;
 	case WM_MOUSEWHEEL:
 		break;
-	case WM_INITDIALOG:  // ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ªì¬‚³‚ê‚½‚Æ‚«
+	case WM_INITDIALOG:  // ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ãŒä½œæˆã•ã‚ŒãŸã¨ã
 		{
 			MonitorInfo *monitor = &monitorInfoList[g_hMonitorTargetIndex];
 
@@ -614,19 +614,19 @@ BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
 
-			// ƒEƒCƒ“ƒhƒE‚Ìƒ^ƒCƒgƒ‹‚ğ‚Ç‚Ìƒ‚ƒjƒ^‚©‚í‚©‚é‚æ‚¤‚È‚à‚Ì‚É
+			// ã‚¦ã‚¤ãƒ³ãƒ‰ã‚¦ã®ã‚¿ã‚¤ãƒˆãƒ«ã‚’ã©ã®ãƒ¢ãƒ‹ã‚¿ã‹ã‚ã‹ã‚‹ã‚ˆã†ãªã‚‚ã®ã«
 			TCHAR buf[256];
-			::wsprintf((LPTSTR)buf, (LPCTSTR)_T("%s‚ÌƒKƒ“ƒ}’²ß"), monitor->monitorName);
+			::wsprintf((LPTSTR)buf, (LPCTSTR)_T("%sã®ã‚¬ãƒ³ãƒèª¿ç¯€"), monitor->monitorName);
 			::SetWindowText(hDlg, buf);
 
-			// í‚ÉÅ‘O–Ê‚É•\¦
+			// å¸¸ã«æœ€å‰é¢ã«è¡¨ç¤º
 			::SetWindowPos(hDlg, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 		}
 		return TRUE;
 
-	case WM_COMMAND:     // ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX“à‚Ì‰½‚©‚ª‘I‘ğ‚³‚ê‚½‚Æ‚«
+	case WM_COMMAND:     // ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹å†…ã®ä½•ã‹ãŒé¸æŠã•ã‚ŒãŸã¨ã
 		switch( LOWORD( wp ) ){
-		case IDOK:       // “K—pƒ{ƒ^ƒ“‚ª‘I‘ğ‚³‚ê‚½
+		case IDOK:       // é©ç”¨ãƒœã‚¿ãƒ³ãŒé¸æŠã•ã‚ŒãŸ
 			level = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_BRIGHTNESS_LEVEL);
 
 			if(level != monitor->level){
@@ -650,8 +650,8 @@ BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
 			break;
-		case IDCANCEL:   // uƒLƒƒƒ“ƒZƒ‹vƒ{ƒ^ƒ“‚ª‘I‘ğ‚³‚ê‚½
-			// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ğÁ‚·
+		case IDCANCEL:   // ã€Œã‚­ãƒ£ãƒ³ã‚»ãƒ«ã€ãƒœã‚¿ãƒ³ãŒé¸æŠã•ã‚ŒãŸ
+			// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ã‚’æ¶ˆã™
 			EndDialog(g_hMonitorGammaDlg, LOWORD(wp));
 			g_hMonitorGammaDlg = NULL;
 			break;
@@ -669,23 +669,23 @@ BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
 			break;
-		case IDSHORTCUT: // ƒVƒ‡[ƒgƒJƒbƒgì¬
+		case IDSHORTCUT: // ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆä½œæˆ
 			CreateDesktopShortcutForGamma(monitor->level);
 			break;
 		}
 		return TRUE;
 
-	case WM_CLOSE:		// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ª•Â‚¶‚ç‚ê‚é‚Æ‚«
-		// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ğÁ‚·
+	case WM_CLOSE:		// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ãŒé–‰ã˜ã‚‰ã‚Œã‚‹ã¨ã
+		// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ã‚’æ¶ˆã™
 		EndDialog(g_hMonitorGammaDlg, LOWORD(wp));
 		g_hMonitorGammaDlg = NULL;
 		return TRUE;
 	}
 
-	return FALSE;  // DefWindowProc()‚Å‚Í‚È‚­AFALSE‚ğ•Ô‚·‚±‚ÆI
+	return FALSE;  // DefWindowProc()ã§ã¯ãªãã€FALSEã‚’è¿”ã™ã“ã¨ï¼
 }
 
-// ƒL[ƒtƒbƒN‚ÌƒgƒOƒ‹
+// ã‚­ãƒ¼ãƒ•ãƒƒã‚¯ã®ãƒˆã‚°ãƒ«
 BOOL stopOrResume(HWND hWnd)
 {
 	bStopedFlag = !bStopedFlag;
@@ -707,12 +707,12 @@ BOOL stopOrResume(HWND hWnd)
 
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
 {
-	//nCode‚ª0–¢–‚Ì‚Æ‚«‚ÍACallNextHookEx‚ª•Ô‚µ‚½’l‚ğ•Ô‚·
+	//nCodeãŒ0æœªæº€ã®ã¨ãã¯ã€CallNextHookExãŒè¿”ã—ãŸå€¤ã‚’è¿”ã™
 	if (nCode < 0)  return CallNextHookEx(g_hKeyConfigHook,nCode,wp,lp);
 
 	if (nCode==HC_ACTION) {
-		//ƒL[‚Ì‘JˆÚó‘Ô‚Ìƒrƒbƒg‚ğƒ`ƒFƒbƒN‚µ‚Ä
-		//WM_KEYDOWN‚ÆWM_KEYUP‚ğDialog‚É‘—M‚·‚é
+		//ã‚­ãƒ¼ã®é·ç§»çŠ¶æ…‹ã®ãƒ“ãƒƒãƒˆã‚’ãƒã‚§ãƒƒã‚¯ã—ã¦
+		//WM_KEYDOWNã¨WM_KEYUPã‚’Dialogã«é€ä¿¡ã™ã‚‹
 		if ((lp & 0x80000000)==0) {
 			PostMessage(g_hKeyConfigDlg,WM_KEYDOWN,wp,lp);
 			return TRUE;
@@ -733,8 +733,8 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	LPTSTR s_nextKey, s_prevKey, s_resetKey, s_optKey, s_buffer = NULL;
 
 	switch( msg ){
-	case WM_INITDIALOG:  // ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ªì¬‚³‚ê‚½‚Æ‚«
-		// í‚ÉÅ‘O–Ê‚É•\¦
+	case WM_INITDIALOG:  // ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ãŒä½œæˆã•ã‚ŒãŸã¨ã
+		// å¸¸ã«æœ€å‰é¢ã«è¡¨ç¤º
 		::SetWindowPos(hDlg, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 		s_buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
 	
@@ -828,23 +828,23 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 
 	case WM_KEYUP:
 		if(targetID == IDC_EDIT_KEYBIND_LIGHTUP){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, L"İ’è");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, L"è¨­å®š");
 			::UnhookWindowsHookEx(g_hKeyConfigHook);
 			g_hKeyConfigHook = NULL;
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTDOWN){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, L"İ’è");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, L"è¨­å®š");
 			::UnhookWindowsHookEx(g_hKeyConfigHook);
 			g_hKeyConfigHook = NULL;
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTRESET){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, L"İ’è");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, L"è¨­å®š");
 			::UnhookWindowsHookEx(g_hKeyConfigHook);
 			g_hKeyConfigHook = NULL;
 		}
 		break;
 
-	case WM_COMMAND:     // ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX“à‚Ì‰½‚©‚ª‘I‘ğ‚³‚ê‚½‚Æ‚«
+	case WM_COMMAND:     // ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹å†…ã®ä½•ã‹ãŒé¸æŠã•ã‚ŒãŸã¨ã
 		switch( LOWORD( wp ) ){
-		case IDOK:       // “K—pƒ{ƒ^ƒ“‚ª‘I‘ğ‚³‚ê‚½
+		case IDOK:       // é©ç”¨ãƒœã‚¿ãƒ³ãŒé¸æŠã•ã‚ŒãŸ
 			::StopHook();
 			::StartKeyHook(prevKey, nextKey, resetKey, optKey);
 
@@ -856,8 +856,8 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			EndDialog(g_hKeyConfigDlg, LOWORD(wp));
 			g_hKeyConfigDlg = NULL;
 			break;
-		case IDCANCEL:   // uƒLƒƒƒ“ƒZƒ‹vƒ{ƒ^ƒ“‚ª‘I‘ğ‚³‚ê‚½
-			// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ğÁ‚·
+		case IDCANCEL:   // ã€Œã‚­ãƒ£ãƒ³ã‚»ãƒ«ã€ãƒœã‚¿ãƒ³ãŒé¸æŠã•ã‚ŒãŸ
+			// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ã‚’æ¶ˆã™
 			EndDialog(g_hKeyConfigDlg, LOWORD(wp));
 			g_hKeyConfigDlg = NULL;
 			break;
@@ -865,19 +865,19 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			if(::g_hKeyConfigHook == NULL)
 				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
 			targetID = IDC_EDIT_KEYBIND_LIGHTUP;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, L"“ü—Í");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, L"å…¥åŠ›");
 			break;
 		case ID_KEYBIND_LIGHTDOWN:
 			if(::g_hKeyConfigHook == NULL)
 				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
 			targetID = IDC_EDIT_KEYBIND_LIGHTDOWN;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, L"“ü—Í");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, L"å…¥åŠ›");
 			break;
 		case ID_KEYBIND_LIGHTRESET:
 			if(::g_hKeyConfigHook == NULL)
 				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
 			targetID = IDC_EDIT_KEYBIND_LIGHTRESET;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, L"“ü—Í");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, L"å…¥åŠ›");
 			break;
 		case IDDEFAULT:
 			nextKey = g_lightUpKey = VK_PRIOR;
@@ -913,9 +913,9 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		}
 		return TRUE;
 
-	case WM_CLOSE:		// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ª•Â‚¶‚ç‚ê‚é‚Æ‚«
-		// ƒ_ƒCƒAƒƒOƒ{ƒbƒNƒX‚ğÁ‚·
-		// ƒtƒbƒN‚³‚ê‚Ä‚½‚ç‚»‚ê‚ğÁ‚·
+	case WM_CLOSE:		// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ãŒé–‰ã˜ã‚‰ã‚Œã‚‹ã¨ã
+		// ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ãƒœãƒƒã‚¯ã‚¹ã‚’æ¶ˆã™
+		// ãƒ•ãƒƒã‚¯ã•ã‚Œã¦ãŸã‚‰ãã‚Œã‚’æ¶ˆã™
 		if(::g_hKeyConfigHook){
 			::UnhookWindowsHookEx(g_hKeyConfigHook);
 			g_hKeyConfigHook = NULL;
@@ -926,17 +926,17 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		return TRUE;
 	}
 
-	return FALSE;  // DefWindowProc()‚Å‚Í‚È‚­AFALSE‚ğ•Ô‚·‚±‚ÆI
+	return FALSE;  // DefWindowProc()ã§ã¯ãªãã€FALSEã‚’è¿”ã™ã“ã¨ï¼
 }
 
 //
-//  ŠÖ”: WndProc(HWND, UINT, WPARAM, LPARAM)
+//  é–¢æ•°: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
-//  –Ú“I:  ƒƒCƒ“ ƒEƒBƒ“ƒhƒE‚ÌƒƒbƒZ[ƒW‚ğˆ—‚µ‚Ü‚·B
+//  ç›®çš„:  ãƒ¡ã‚¤ãƒ³ ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’å‡¦ç†ã—ã¾ã™ã€‚
 //
-//  WM_COMMAND	- ƒAƒvƒŠƒP[ƒVƒ‡ƒ“ ƒƒjƒ…[‚Ìˆ—
-//  WM_PAINT	- ƒƒCƒ“ ƒEƒBƒ“ƒhƒE‚Ì•`‰æ
-//  WM_DESTROY	- ’†~ƒƒbƒZ[ƒW‚ğ•\¦‚µ‚Ä–ß‚é
+//  WM_COMMAND	- ã‚¢ãƒ—ãƒªã‚±ãƒ¼ã‚·ãƒ§ãƒ³ ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã®å‡¦ç†
+//  WM_PAINT	- ãƒ¡ã‚¤ãƒ³ ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®æç”»
+//  WM_DESTROY	- ä¸­æ­¢ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤ºã—ã¦æˆ»ã‚‹
 //
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -957,7 +957,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		::OutputDebugString(TEXT("wheeeeel"));
 		break;
 	case WM_CREATE:
-		// ƒ‚ƒjƒ^‚Ìí—Ş‚ğÄ”F¯‚·‚é
+		// ãƒ¢ãƒ‹ã‚¿ã®ç¨®é¡ã‚’å†èªè­˜ã™ã‚‹
 		RecognizeMonitors();
 
 		SetWindowHandle(hWnd);
@@ -969,7 +969,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_TASKTRAY:
 		switch(lParam){
 		case WM_LBUTTONDOWN:
-			// ƒVƒ“ƒOƒ‹ƒNƒŠƒbƒN‚Å’†’f <-> ÄŠJ
+			// ã‚·ãƒ³ã‚°ãƒ«ã‚¯ãƒªãƒƒã‚¯ã§ä¸­æ–­ <-> å†é–‹
 			stopOrResume(hWnd);
 			break;
 		case WM_LBUTTONDBLCLK:
@@ -977,14 +977,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_RBUTTONDOWN:
 			SetForegroundWindow(hWnd);
 
-			// ƒJ[ƒ\ƒ‹‚ÌŒ»İˆÊ’u‚ğæ“¾
+			// ã‚«ãƒ¼ã‚½ãƒ«ã®ç¾åœ¨ä½ç½®ã‚’å–å¾—
 			POINT point;
 			::GetCursorPos(&point);
 
 			hMenu = LoadMenu(NULL, MAKEINTRESOURCE(IDR_MENU));
 			hSubMenu = GetSubMenu(hMenu, 0);
 	
-			// Œ»İ‚Ì‘I‘ğó‘Ô‚ğƒ^ƒXƒNƒo[‚É•\¦
+			// ç¾åœ¨ã®é¸æŠçŠ¶æ…‹ã‚’ã‚¿ã‚¹ã‚¯ãƒãƒ¼ã«è¡¨ç¤º
 			if(bStopedFlag){
 				CheckMenuItem(hSubMenu, IDM_STOP, MF_BYCOMMAND | MF_CHECKED);
 			}else{
@@ -997,7 +997,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			mii.fMask = MIIM_FTYPE | MIIM_STRING | MIIM_SUBMENU;
 			mii.fType = MFT_STRING;
 			mii.hSubMenu = hView;
-			mii.dwTypeData = _T("ƒ‚ƒjƒ^•Ê’²ß");
+			mii.dwTypeData = _T("ãƒ¢ãƒ‹ã‚¿åˆ¥èª¿ç¯€");
 			InsertMenuItem(hSubMenu, 0, TRUE, &mii);
 			
 			for(int i=0; i<g_deviceContextCounter; i++){
@@ -1018,7 +1018,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
-		// ‘I‘ğ‚³‚ê‚½ƒƒjƒ…[‚Ì‰ğÍ:
+		// é¸æŠã•ã‚ŒãŸãƒ¡ãƒ‹ãƒ¥ãƒ¼ã®è§£æ:
 		switch (wmId)
 		{
 		case IDM_ABOUT:
@@ -1063,7 +1063,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				int monitorId = wmId - IDM_MONITOR;
 				g_hMonitorTargetIndex = monitorId;
 
-				// ƒ‚ƒjƒ^‚ÌID‚ª‚í‚©‚Á‚½‚Ì‚Å‚»‚¢‚Â‚ğ‘ÎÛ‚Æ‚µ‚½ƒ_ƒCƒAƒƒO•\¦
+				// ãƒ¢ãƒ‹ã‚¿ã®IDãŒã‚ã‹ã£ãŸã®ã§ãã„ã¤ã‚’å¯¾è±¡ã¨ã—ãŸãƒ€ã‚¤ã‚¢ãƒ­ã‚°è¡¨ç¤º
 				if(!g_hMonitorGammaDlg)
 					g_hMonitorGammaDlg = CreateDialog(hInst, TEXT("IDD_GAMMA_DIALOG"), hWnd, &DlgMonitorGammaProc);
 			}
@@ -1094,7 +1094,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
-		// TODO: •`‰æƒR[ƒh‚ğ‚±‚±‚É’Ç‰Á‚µ‚Ä‚­‚¾‚³‚¢...
+		// TODO: æç”»ã‚³ãƒ¼ãƒ‰ã‚’ã“ã“ã«è¿½åŠ ã—ã¦ãã ã•ã„...
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_CLOSE:
@@ -1107,8 +1107,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		StopHook();
 		NOTIFYICONDATA tnid; 
 		tnid.cbSize = sizeof(NOTIFYICONDATA); 
-		tnid.hWnd = hWnd;				// ƒƒCƒ“ƒEƒBƒ“ƒhƒEƒnƒ“ƒhƒ‹
-		tnid.uID = ID_TRAYICON;			// ƒRƒ“ƒgƒ[ƒ‹ID
+		tnid.hWnd = hWnd;				// ãƒ¡ã‚¤ãƒ³ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãƒãƒ³ãƒ‰ãƒ«
+		tnid.uID = ID_TRAYICON;			// ã‚³ãƒ³ãƒˆãƒ­ãƒ¼ãƒ«ID
 		::Shell_NotifyIcon(NIM_DELETE, &tnid); 
 
 		SetMenu(hWnd, NULL);
@@ -1126,7 +1126,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-// ƒo[ƒWƒ‡ƒ“î•ñƒ{ƒbƒNƒX‚ÌƒƒbƒZ[ƒW ƒnƒ“ƒhƒ‰[‚Å‚·B
+// ãƒãƒ¼ã‚¸ãƒ§ãƒ³æƒ…å ±ãƒœãƒƒã‚¯ã‚¹ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ ãƒãƒ³ãƒ‰ãƒ©ãƒ¼ã§ã™ã€‚
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	UNREFERENCED_PARAMETER(lParam);

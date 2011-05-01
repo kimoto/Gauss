@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "Util.h"
 
 #define TRACE_BUFFER_SIZE 1024
@@ -86,7 +86,7 @@ void mciShowLastError(MMRESULT result)
 
 void mciAssert(MMRESULT result)
 {
-	// �G���[�������Ƃ��͂��̓��e��\�����ċ����I�����܂�
+	// エラーだったときはその内容を表示して強制終了します
 	if(result != MMSYSERR_NOERROR){
 		::mciShowLastError(result);
 		exit(1);
@@ -103,13 +103,13 @@ BOOL ReadWaveFile(LPTSTR lpszFileName, LPWAVEFORMATEX lpwf, LPBYTE *lplpData, LP
 
 	hmmio = mmioOpen(lpszFileName, NULL, MMIO_READ);
 	if (hmmio == NULL) {
-		MessageBox(NULL, TEXT("�t�@�C���̃I�[�v���Ɏ��s���܂����B"), NULL, MB_ICONWARNING);
+		MessageBox(NULL, TEXT("ファイルのオープンに失敗しました。"), NULL, MB_ICONWARNING);
 		return FALSE;
 	}
 	
 	mmckRiff.fccType = mmioStringToFOURCC(TEXT("WAVE"), 0);
 	if (mmioDescend(hmmio, &mmckRiff, NULL, MMIO_FINDRIFF) != MMSYSERR_NOERROR) {
-		MessageBox(NULL, TEXT("WAVE�t�@�C���ł͂���܂���B"), NULL, MB_ICONWARNING);
+		MessageBox(NULL, TEXT("WAVEファイルではありません。"), NULL, MB_ICONWARNING);
 		mmioClose(hmmio, 0);
 		return FALSE;
 	}
@@ -122,7 +122,7 @@ BOOL ReadWaveFile(LPTSTR lpszFileName, LPWAVEFORMATEX lpwf, LPBYTE *lplpData, LP
 	mmioRead(hmmio, (HPSTR)lpwf, mmckFmt.cksize);
 	mmioAscend(hmmio, &mmckFmt, 0);
 	if (lpwf->wFormatTag != WAVE_FORMAT_PCM) {
-		MessageBox(NULL, TEXT("PCM�f�[�^�ł͂���܂���B"), NULL, MB_ICONWARNING);
+		MessageBox(NULL, TEXT("PCMデータではありません。"), NULL, MB_ICONWARNING);
 		mmioClose(hmmio, 0);
 		return FALSE;
 	}
@@ -252,7 +252,7 @@ void CALLBACK musicCallback(
 	if(uMsg == MM_WOM_DONE){
 		trace(L"done\n");
 
-		if(sound_ptr >= 2){ // 2��ڂ̃o�b�t�@���I�������A�ŏ��Ƀo�b�t�@���Q�Ƃ���悤��(double buffering)
+		if(sound_ptr >= 2){ // 2回目のバッファが終わったら、最初にバッファを参照するように(double buffering)
 			sound_ptr = 0;
 		}
 		::mciAssert( ::waveOutWrite(hWaveOut, &whdr[sound_ptr++], sizeof(WAVEHDR)) );
@@ -262,12 +262,12 @@ void CALLBACK musicCallback(
 void mciPlayBGM(LPTSTR szFileName, double volume_scale)
 {
 	if(!ReadWaveFile(szFileName, &wfe, &lpWaveData, &dwDataSize)){
-		MessageBox(NULL, TEXT("WAVE�f�o�C�X�̓ǂݍ��݂Ɏ��s���܂����B"), NULL, MB_ICONWARNING);
+		MessageBox(NULL, TEXT("WAVEデバイスの読み込みに失敗しました。"), NULL, MB_ICONWARNING);
 		return;
 	}
 
 	if(::waveOutOpen(&hWaveOut, WAVE_MAPPER, &wfe,(DWORD_PTR)&musicCallback, 0, CALLBACK_FUNCTION) != MMSYSERR_NOERROR){
-		MessageBox(NULL, TEXT("WAVE�f�o�C�X�̃I�[�v���Ɏ��s���܂����B"), NULL, MB_ICONWARNING);
+		MessageBox(NULL, TEXT("WAVEデバイスのオープンに失敗しました。"), NULL, MB_ICONWARNING);
 		return;
 	}
 
@@ -278,11 +278,11 @@ void mciPlayBGM(LPTSTR szFileName, double volume_scale)
 
 		::waveOutPrepareHeader(hWaveOut, &whdr[i], sizeof(WAVEHDR));
 
-		// �ŏ��͗����̃o�b�t�@���Đ�����
+		// 最初は両方のバッファを再生する
 		::mciAssert( ::waveOutWrite(hWaveOut, &whdr[i], sizeof(WAVEHDR)) );
 	}
 
-	// ���ʂ̐ݒ�
+	// 音量の設定
 	DWORD left = (DWORD)(0xFFFF * volume_scale); // 0xFFFF = max volume
 	DWORD right = left;
 	DWORD dwVolume = MAKELONG(left, right);
@@ -297,25 +297,25 @@ void ShowLastError(void){
 	FORMAT_MESSAGE_FROM_SYSTEM,
 	NULL,
 	GetLastError(),
-	MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // �f�t�H���g ���[�U�[���� 
+	MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // デフォルト ユーザー言語 
 	(LPTSTR) &lpMessageBuffer,
 	0,
 	NULL );
 
 	MessageBox(NULL, (LPCWSTR)lpMessageBuffer, TEXT("Error"), MB_OK);
   
-	//... �����񂪕\������܂��B
-	// �V�X�e���ɂ���Ċm�ۂ��ꂽ�o�b�t�@���J�����܂��B
+	//... 文字列が表示されます。
+	// システムによって確保されたバッファを開放します。
 	LocalFree( lpMessageBuffer );
 }
 
 
-// �V���[�g�J�b�g�쐬
-BOOL CreateShortcut ( LPCTSTR pszTargetPath /* �^�[�Q�b�g�p�X */,
-    LPCTSTR pszArguments /* ���� */,
-    LPCTSTR pszWorkPath /* ��ƃf�B���N�g�� */,
-    int nCmdShow /* ShowWindow�̈��� */,
-    LPCSTR pszShortcutPath /* �V���[�g�J�b�g�t�@�C��(*.lnk)�̃p�X */ )
+// ショートカット作成
+BOOL CreateShortcut ( LPCTSTR pszTargetPath /* ターゲットパス */,
+    LPCTSTR pszArguments /* 引数 */,
+    LPCTSTR pszWorkPath /* 作業ディレクトリ */,
+    int nCmdShow /* ShowWindowの引数 */,
+    LPCSTR pszShortcutPath /* ショートカットファイル(*.lnk)のパス */ )
 {
     IShellLink *psl = NULL;
     IPersistFile *ppf = NULL;
@@ -325,27 +325,27 @@ BOOL CreateShortcut ( LPCTSTR pszTargetPath /* �^�[�Q�b�g�p�X */,
     };
     TCHAR wcLink[ MY_MAX_PATH ]=_T("");
 
-    // IShellLink�C���^�[�t�F�[�X�̍쐬
+    // IShellLinkインターフェースの作成
     HRESULT result = CoCreateInstance( CLSID_ShellLink, NULL,CLSCTX_INPROC_SERVER, IID_IShellLink, ( void ** ) &psl);
 	if(FAILED(result))
     {
 		return result;
 	}
 
-    // �ݒ�
+    // 設定
     psl->SetPath ( pszTargetPath );
     psl->SetArguments ( pszArguments );
     psl->SetWorkingDirectory ( pszWorkPath );
     psl->SetShowCmd ( nCmdShow );
 
-    // IPersistFile�C���^�[�t�F�[�X�̍쐬
+    // IPersistFileインターフェースの作成
     if ( FAILED ( psl->QueryInterface ( IID_IPersistFile, ( void ** ) &ppf ) ) )
     {
         psl->Release ();
         return FALSE;
     }
     
-    // lpszLink��WCHAR�^�ɕϊ�
+    // lpszLinkをWCHAR型に変換
     MultiByteToWideChar ( CP_ACP, 0, pszShortcutPath, -1, wcLink, MY_MAX_PATH );
     if ( FAILED ( ppf->Save ( wcLink, TRUE ) ) )
     {
@@ -355,7 +355,7 @@ BOOL CreateShortcut ( LPCTSTR pszTargetPath /* �^�[�Q�b�g�p�X */,
 
 	result = ppf->Save((LPCOLESTR)pszShortcutPath,TRUE);
 	
-    // ���
+    // 解放
     ppf->Release ();
     psl->Release ();
 
@@ -448,8 +448,8 @@ double GetDlgItemDouble(HWND hWnd, UINT id)
 
 BOOL GetDesktopPath(LPTSTR buffer, DWORD size_in_words)
 {
-	/* SHGetPathFromIDList���o�b�t�@�̃T�C�Y�����؂��Ă���Ȃ��̂�
-	����Ɂu�Œ�ł�MAX_PATH���������̃o�b�t�@���m�ۂ���Ă��邱�Ɓv���m�F���܂� */
+	/* SHGetPathFromIDListがバッファのサイズを検証してくれないので
+	勝手に「最低でもMAX_PATH文字数分のバッファが確保されていること」を確認します */
 	if(size_in_words < MAX_PATH){
 		return FALSE;
 	}
@@ -460,7 +460,7 @@ BOOL GetDesktopPath(LPTSTR buffer, DWORD size_in_words)
 	return TRUE;
 }
 
-// ���j�^�ʂɃK���}��ݒ�
+// モニタ個別にガンマを設定
 BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB)
 {
 	gammaR = 1.0 / gammaR;
@@ -489,7 +489,7 @@ BOOL SetMonitorGamma(HDC hdc, double gamma)
 	return SetMonitorGamma(hdc, gamma, gamma, gamma);
 }
 
-// ���ׂẴ��j�^���ʂɃK���}��ݒ�
+// すべてのモニタ共通にガンマを設定
 BOOL SetGamma(double gammaR, double gammaG, double gammaB)
 {
 	return SetMonitorGamma(::GetDC(NULL), gammaR, gammaG, gammaB);

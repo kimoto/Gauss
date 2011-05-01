@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <MMSystem.h>
 #pragma comment(lib, "winmm")
 
@@ -21,11 +21,11 @@ void DrawFormatText(HDC hdc, LPRECT rect, UINT type, LPCTSTR format, ...);
 void TextFormatOut(HDC hdc, int x, int y, LPCTSTR format, ...);
 void mciPlayBGM(LPTSTR szFileName, double volume_scale);
 void ShowLastError(void);
-BOOL CreateShortcut ( LPCTSTR pszTargetPath /* ƒ^[ƒQƒbƒgƒpƒX */,
-    LPCTSTR pszArguments /* ˆø” */,
-    LPCTSTR pszWorkPath /* ì‹ÆƒfƒBƒŒƒNƒgƒŠ */,
-    int nCmdShow /* ShowWindow‚Ìˆø” */,
-    LPCSTR pszShortcutPath /* ƒVƒ‡[ƒgƒJƒbƒgƒtƒ@ƒCƒ‹(*.lnk)‚ÌƒpƒX */ );
+BOOL CreateShortcut ( LPCTSTR pszTargetPath /* ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãƒ‘ã‚¹ */,
+    LPCTSTR pszArguments /* å¼•æ•° */,
+    LPCTSTR pszWorkPath /* ä½œæ¥­ãƒ‡ã‚£ãƒ¬ã‚¯ãƒˆãƒª */,
+    int nCmdShow /* ShowWindowã®å¼•æ•° */,
+    LPCSTR pszShortcutPath /* ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆãƒ•ã‚¡ã‚¤ãƒ«(*.lnk)ã®ãƒ‘ã‚¹ */ );
 double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR path);
 BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR path);
 LPTSTR GetKeyNameTextEx(UINT vk);
