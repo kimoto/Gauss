@@ -40,3 +40,5 @@ BOOL SetMonitorGamma(HDC hdc, double gamma);
 BOOL SetGamma(double gammaR, double gammaG, double gammaB);
 BOOL SetGamma(double gamma);
 BOOL SetWindowTopMost(HWND hWnd);
+
+LPTSTR sprintf_alloc(LPTSTR format, ...);

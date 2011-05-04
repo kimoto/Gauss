@@ -515,3 +515,15 @@ BOOL SetWindowTopMost(HWND hWnd)
 {
 	return ::SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 }
+
+LPTSTR sprintf_alloc(LPTSTR format, ...)
+{
+	va_list arg;
+	va_start(arg, format);
+	
+	LPTSTR buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, TRACE_BUFFER_SIZE * sizeof(TCHAR));
+	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
+	va_end(arg);
+
+	return buffer;
+}

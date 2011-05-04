@@ -167,7 +167,7 @@ BOOL CreateDesktopShortcutForGamma(double gamma)
 	TCHAR gammaOption[MAX_PATH];
 	::_stprintf_s(linkPath, L"%s\\ガンマ%.2f.lnk", desktopPath, gamma);
 	::_stprintf_s(gammaOption, L"-gamma %.1f", gamma);
-
+	
 	::CoInitialize(NULL);
 	BOOL result = CreateShortcut(szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
 	::CoUninitialize();
@@ -608,12 +608,12 @@ BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
 
 			// ウインドウのタイトルをどのモニタかわかるようなものに
-			TCHAR buf[256];
-			::wsprintf((LPTSTR)buf, (LPCTSTR)_T("%sのガンマ調節"), monitor->monitorName);
+			LPTSTR buf = sprintf_alloc(L"%sのガンマ調節", monitor->monitorName);
 			::SetWindowText(hDlg, buf);
+			::GlobalFree(buf);
 
 			// 常に最前面に表示
-			::SetWindowPos(hDlg, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
+			::SetWindowTopMost(hDlg);
 		}
 		return TRUE;
 
@@ -698,6 +698,7 @@ BOOL stopOrResume(HWND hWnd)
 	return bStopedFlag;
 }
 
+// キーフック用のプロシージャ
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
 {
 	//nCodeが0未満のときは、CallNextHookExが返した値を返す
@@ -934,7 +935,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		::OutputDebugString(TEXT("wheeeeel"));
 		break;
 	case WM_CREATE:
-		// モニタの種類を再認識する
+		// モニタの種類、数を認識する
 		RecognizeMonitors();
 
 		SetWindowHandle(hWnd);
@@ -1036,7 +1037,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		default:
-			if(IDM_MONITOR <= wmId && wmId <= IDM_MONITOR + 100){
+			if(IDM_MONITOR <= wmId && wmId <= IDM_MONITOR + MAX_MONITOR_NUMBER){
 				int monitorId = wmId - IDM_MONITOR;
 				g_hMonitorTargetIndex = monitorId;
 
