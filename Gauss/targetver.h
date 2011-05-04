@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // SDKDDKVer.h をインクルードすると、利用できる最も上位の Windows プラットフォームが定義されます。
 

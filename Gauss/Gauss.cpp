@@ -724,50 +724,74 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
     return CallNextHookEx(g_hKeyConfigHook,nCode,wp,lp);
 }
 
+// 指定されたキー設定の文字列表現を取得します
+// バッファは動的に確保しますので、使用後は解放が必要です
+LPTSTR GetKeyConfigString(int vk, int opt_vk)
+{
+	// wp == optのときは、Ctrl + Ctrlとかなので重複して表示させないようにケア
+	if( vk == opt_vk )
+		opt_vk = NULL;
+
+	LPTSTR vk_str = ::GetKeyNameTextEx(vk);
+	LPTSTR opt_vk_str = ::GetKeyNameTextEx(opt_vk);
+
+	LPTSTR s_buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
+	if(opt_vk != NULL){ // CONTROL,ALTキーが設定されていた場合はALT + Bみたいな文字列になる
+		::wsprintf(s_buffer, L"%s + %s", opt_vk_str, vk_str);
+	}else{
+		::wsprintf(s_buffer, vk_str);
+	}
+
+	::GlobalFree(vk_str);
+	::GlobalFree(opt_vk_str);
+
+	return s_buffer;
+}
+
+void SetCurrentKeyConfigToGUI(HWND hWnd)
+{
+	LPTSTR up = ::GetKeyConfigString(g_lightUpKey, g_lightOptKey);
+	LPTSTR down = ::GetKeyConfigString(g_lightDownKey, g_lightOptKey);
+	LPTSTR reset = ::GetKeyConfigString(g_lightResetKey, g_lightOptKey);
+
+	::SetDlgItemText(hWnd, IDC_EDIT_KEYBIND_LIGHTUP, up);
+	::SetDlgItemText(hWnd, IDC_EDIT_KEYBIND_LIGHTDOWN, down);
+	::SetDlgItemText(hWnd, IDC_EDIT_KEYBIND_LIGHTRESET, reset);
+
+	::GlobalFree(up);
+	::GlobalFree(down);
+	::GlobalFree(reset);
+}
+
+BOOL SetWindowTopMost(HWND hWnd)
+{
+	return ::SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
+}
+
+#define DLG_KEYCONFIG_PROC_WINDOW_TITLE L"キー設定"
+#define DLG_KEYCONFIG_ASK L"キーを入力してください"
+#define DLG_KEYCONFIG_ASK_BUTTON_TITLE L"入力"
+#define DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE L"設定"
 BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
-	LPTSTR lpstr, lpBuffer = NULL;
+	//LPTSTR lpstr, lpBuffer = NULL;
 	static UINT targetID = -1;
 	BYTE keyTbl[256];
-	static int prevKey, nextKey, resetKey, optKey = 0;
-	LPTSTR s_nextKey, s_prevKey, s_resetKey, s_optKey, s_buffer = NULL;
+	static int prevKey, nextKey, resetKey, optKey = 0;	// 一時的なキー設定に利用します、キャンセルしたら元通りになるようにするため
+	LPTSTR lpKeyConfigBuffer = NULL;
 
 	switch( msg ){
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
-		// 常に最前面に表示
-		::SetWindowPos(hDlg, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
-		s_buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
-	
-		s_nextKey = ::GetKeyNameTextEx(g_lightUpKey);
-		s_prevKey = ::GetKeyNameTextEx(g_lightDownKey);
-		s_resetKey = ::GetKeyNameTextEx(g_lightResetKey);
-		s_optKey = ::GetKeyNameTextEx(g_lightOptKey);
-
-		if(g_lightOptKey != NULL){
-			::wsprintf(s_buffer, L"%s + %s", s_optKey, s_nextKey);
-			::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTUP, s_buffer);
-
-			::wsprintf(s_buffer, L"%s + %s", s_optKey, s_prevKey);
-			::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTDOWN, s_buffer);
-
-			::wsprintf(s_buffer, L"%s + %s", s_optKey, s_resetKey);
-			::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTRESET, s_buffer);
-		}else{
-			::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTUP, s_nextKey);
-			::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTDOWN, s_prevKey);
-			::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTRESET, s_resetKey);
-		}
-
-		::GlobalFree(s_buffer);
-		::GlobalFree(s_nextKey);
-		::GlobalFree(s_prevKey);
-		::GlobalFree(s_resetKey);
-		::GlobalFree(s_optKey);
+		::SetWindowTopMost(hDlg); // ウインドウを最前面にします
+		::SetCurrentKeyConfigToGUI(hDlg);
 
 		nextKey = g_lightUpKey;
 		prevKey = g_lightDownKey;
 		resetKey = g_lightResetKey;
 		optKey = g_lightOptKey;
+
+		// ウインドウのタイトルを規定のものに設定します
+		::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
 		return TRUE;
 
 	case WM_KEYDOWN:
@@ -776,44 +800,23 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			exit(-1);
 		}
 
+		// 入力された補助キーを判断して代入
 		optKey = NULL;
-
-		lpstr = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
-		lpBuffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
-
 		if( keyTbl[VK_CONTROL] & 0x80 ){
-			::GetKeyNameText(lp, lpstr, 256);
-			
-			if(wp != VK_CONTROL){
-				::wsprintf(lpBuffer, L"%s + %s", L"Ctrl", lpstr);
-				optKey = VK_CONTROL;
-			}else{
-				::wsprintf(lpBuffer, lpstr);
-			}
-
+			optKey = VK_CONTROL;
 		}else if( keyTbl[VK_SHIFT] & 0x80 ){
-			::GetKeyNameText(lp, lpstr, 256);
-
-			if(wp != VK_SHIFT){
-				::wsprintf(lpBuffer, L"%s + %s", L"Shift", lpstr);
-				optKey = VK_SHIFT;
-			}else
-				::wsprintf(lpBuffer, lpstr);
+			optKey = VK_SHIFT;
 		}else if( keyTbl[VK_MENU] & 0x80 ){
-			::GetKeyNameText(lp, lpstr, 256);
-
-			if(wp != VK_MENU){
-				::wsprintf(lpBuffer, L"%s + %s", L"Alt", lpstr);
-				optKey = VK_MENU;
-			}else
-				::wsprintf(lpBuffer, lpstr);
+			optKey = VK_MENU;
 		}else{
-			::GetKeyNameText(lp, lpstr, 256);
-			::wsprintf(lpBuffer, L"%s", lpstr);
+			optKey = NULL; // 何も押されてないときはNULL
 		}
 
-		::SetDlgItemText(hDlg, targetID, lpBuffer);
-
+		// 入力されたキーをUI上に反映させます
+		lpKeyConfigBuffer = ::GetKeyConfigString(wp, optKey);
+		::SetDlgItemText(hDlg, targetID, lpKeyConfigBuffer);
+		::GlobalFree(lpKeyConfigBuffer);
+		
 		if(targetID == IDC_EDIT_KEYBIND_LIGHTUP){
 			nextKey = wp;
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTDOWN){
@@ -821,24 +824,27 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTRESET){
 			resetKey = wp;
 		}
-
-		::GlobalFree(lpstr);
-		::GlobalFree(lpBuffer);
 		return TRUE;
 
 	case WM_KEYUP:
 		if(targetID == IDC_EDIT_KEYBIND_LIGHTUP){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, L"設定");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE);
 			::UnhookWindowsHookEx(g_hKeyConfigHook);
+			::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
 			g_hKeyConfigHook = NULL;
+
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTDOWN){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, L"設定");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE);
 			::UnhookWindowsHookEx(g_hKeyConfigHook);
+			::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
 			g_hKeyConfigHook = NULL;
+
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTRESET){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, L"設定");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE);
 			::UnhookWindowsHookEx(g_hKeyConfigHook);
+			::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
 			g_hKeyConfigHook = NULL;
+
 		}
 		break;
 
@@ -865,50 +871,31 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			if(::g_hKeyConfigHook == NULL)
 				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
 			targetID = IDC_EDIT_KEYBIND_LIGHTUP;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, L"入力");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, DLG_KEYCONFIG_ASK_BUTTON_TITLE);
+			::SetWindowText(hDlg, DLG_KEYCONFIG_ASK);
 			break;
 		case ID_KEYBIND_LIGHTDOWN:
 			if(::g_hKeyConfigHook == NULL)
 				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
 			targetID = IDC_EDIT_KEYBIND_LIGHTDOWN;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, L"入力");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, DLG_KEYCONFIG_ASK_BUTTON_TITLE);
+			::SetWindowText(hDlg, DLG_KEYCONFIG_ASK);
 			break;
 		case ID_KEYBIND_LIGHTRESET:
 			if(::g_hKeyConfigHook == NULL)
 				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
 			targetID = IDC_EDIT_KEYBIND_LIGHTRESET;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, L"入力");
+			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, DLG_KEYCONFIG_ASK_BUTTON_TITLE);
+			::SetWindowText(hDlg, DLG_KEYCONFIG_ASK);
 			break;
-		case IDDEFAULT:
+		case IDDEFAULT: // デフォルトボタンが押されたとき
 			nextKey = g_lightUpKey = VK_PRIOR;
 			prevKey = g_lightDownKey = VK_NEXT;
 			resetKey = g_lightResetKey = VK_HOME;
 			optKey = g_lightOptKey = VK_CONTROL;
 
-			s_buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
-	
-			s_nextKey = ::GetKeyNameTextEx(g_lightUpKey);
-			s_prevKey = ::GetKeyNameTextEx(g_lightDownKey);
-			s_resetKey = ::GetKeyNameTextEx(g_lightResetKey);
-			s_optKey = ::GetKeyNameTextEx(g_lightOptKey);
-
-			if(g_lightOptKey != NULL){
-				::wsprintf(s_buffer, L"%s + %s", s_optKey, s_nextKey);
-				::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTUP, s_buffer);
-
-				::wsprintf(s_buffer, L"%s + %s", s_optKey, s_prevKey);
-				::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTDOWN, s_buffer);
-
-				::wsprintf(s_buffer, L"%s + %s", s_optKey, s_resetKey);
-				::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTRESET, s_buffer);
-			}else{
-				::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTUP, s_nextKey);
-				::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTDOWN, s_prevKey);
-				::SetDlgItemText(hDlg, IDC_EDIT_KEYBIND_LIGHTRESET, s_resetKey);
-			}
-
-			::StopHook();
-			::StartKeyHook(prevKey, nextKey, resetKey, optKey);
+			// 現在のキー設定をGUIに反映します
+			SetCurrentKeyConfigToGUI(hDlg);
 			break;
 		}
 		return TRUE;
@@ -950,6 +937,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	HMENU hView;
 	MENUITEMINFO mii;
 	static UINT_PTR timer = NULL;
+	static HWND hTool;
+	static TOOLINFO ti;
 
 	switch (message)
 	{
@@ -965,6 +954,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		// taskbar event
 		wm_taskbarCreated = RegisterWindowMessage(TEXT("TaskbarCreated"));
+
+		hTool = CreateWindowEx( 0 , TOOLTIPS_CLASS ,
+			NULL , TTS_ALWAYSTIP ,
+			CW_USEDEFAULT , CW_USEDEFAULT ,
+			CW_USEDEFAULT , CW_USEDEFAULT ,
+			hWnd , NULL , ((LPCREATESTRUCT)(lParam))->hInstance ,
+			NULL
+		);
+		::GetClientRect(hWnd, &ti.rect);
+		ti.cbSize = sizeof (TOOLINFO);
+		ti.uFlags = TTF_SUBCLASS | TTF_IDISHWND;
+		ti.hwnd = hWnd;
+		ti.lpszText = L"hoge fuga piyo";
+		SendMessage(hTool , TTM_ADDTOOL , 0 , (LPARAM)&ti);
 		break;
 	case WM_TASKTRAY:
 		switch(lParam){
@@ -1105,6 +1108,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SaveConfig();
 
 		StopHook();
+
 		NOTIFYICONDATA tnid; 
 		tnid.cbSize = sizeof(NOTIFYICONDATA); 
 		tnid.hWnd = hWnd;				// メインウィンドウハンドル

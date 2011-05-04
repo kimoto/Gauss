@@ -379,6 +379,9 @@ BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR
 	return ::WritePrivateProfileString(section, key, buf, path);
 }
 
+// 指定された仮想キーの文字列表現を
+// 動的に確保したバッファ領域に格納して返却します
+#define KEYNAMETEXT_BUFFER_SIZE 256
 LPTSTR GetKeyNameTextEx(UINT vk)
 {
 	UINT uScanCode = ::MapVirtualKey(vk, 0);
@@ -401,8 +404,8 @@ LPTSTR GetKeyNameTextEx(UINT vk)
 		break;
 	}
 
-	LPTSTR buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
-	::GetKeyNameText(lParam, buffer, 256);
+	LPTSTR buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, KEYNAMETEXT_BUFFER_SIZE);
+	::GetKeyNameText(lParam, buffer, KEYNAMETEXT_BUFFER_SIZE);
 	return buffer;
 }
 
