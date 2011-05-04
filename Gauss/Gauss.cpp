@@ -80,8 +80,8 @@ HWND g_hGammaDlg;
 HWND g_hMonitorGammaDlg;
 HWND g_hKeyConfigDlg;
 
-HDC g_deviceContexts[256];
-LPWSTR g_deviceNames[256];
+HDC g_deviceContexts[MAX_MONITOR_NUMBER];
+LPWSTR g_deviceNames[MAX_MONITOR_NUMBER];
 int g_deviceContextCounter = 0;
 
 int g_lightUpKey = VK_PRIOR;
@@ -106,13 +106,11 @@ BOOL SetGammaCorrectMonitorRGB(HDC hdc, double gammaR, double gammaG, double gam
 BOOL SetGammaCorrectRGB(double gammaR, double gammaG, double gammaB)
 {
 	return ::SetGamma(gammaR, gammaG, gammaB);
-	//return ::SetGammaCorrectMonitorRGB(::GetDC(NULL), gammaR, gammaG, gammaB);
 }
 
 BOOL SetGammaCorrect(double gamma)
 {
 	return ::SetGamma(gamma);
-	//return SetGammaCorrectRGB(gamma, gamma, gamma);
 }
 
 // 各モニタ間のガンマ差を意識したまま、全体としてガンマの上げ下げを行うための関数
@@ -130,6 +128,27 @@ BOOL SetGammaCorrectRGBCareMonitor(double gammaR, double gammaG, double gammaB)
 			monitorInfoList[i].b + b);
 	}
 	return TRUE;
+}
+
+BOOL nextGamma(void)
+{
+	g_gamma += GAMMA_INCREMENT_VALUE;
+	if(g_gamma > GAMMA_MAX_VALUE)
+		g_gamma = GAMMA_MAX_VALUE;
+	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
+}
+
+BOOL prevGamma(void)
+{
+	g_gamma -= GAMMA_DECREMENT_VALUE;
+	if(g_gamma < GAMMA_MIN_VALUE) g_gamma = GAMMA_MIN_VALUE;
+	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
+}
+
+BOOL resetGamma(void)
+{
+	g_gamma = GAMMA_DEFAULT_VALUE;
+	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
 }
 
 BOOL CreateDesktopShortcutForGamma(double gamma)
@@ -214,10 +233,10 @@ void LoadConfig(void)
 		::g_lightResetKey = ::GetPrivateProfileInt(L"KeyBind", L"lightResetKey", VK_HOME, lpConfigPath);
 		::g_lightOptKey = ::GetPrivateProfileInt(L"KeyBind", L"lightOptKey", VK_CONTROL, lpConfigPath);
 
-		::g_gamma = ::GetPrivateProfileDouble(L"Gamma", L"gamma", 1.0, lpConfigPath);
-		::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", 1.0, lpConfigPath);
-		::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", 1.0, lpConfigPath);
-		::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", 1.0, lpConfigPath);
+		::g_gamma = ::GetPrivateProfileDouble(L"Gamma", L"gamma", DEFAULT_GAMMA, lpConfigPath);
+		::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", DEFAULT_GAMMA, lpConfigPath);
+		::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", DEFAULT_GAMMA, lpConfigPath);
+		::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", DEFAULT_GAMMA, lpConfigPath);
 
 		::GlobalFree(lpConfigPath);
 	}else{
@@ -231,19 +250,15 @@ void SaveConfig(void)
 {
 	LPTSTR lpCurrentDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
 
+	// プログラム(実行ファイル)のあるフォルダに設定を保存します
 	if( ::GetExecuteDirectory(lpCurrentDirectory, MAX_PATH) ){
 		LPTSTR lpConfigPath = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
 		::wsprintf(lpConfigPath, L"%s\\%s", lpCurrentDirectory, L"config.ini");
 
-		TCHAR s_lightUpKey[256], s_lightDownKey[256], s_lightResetKey[256], s_lightOptKey[256];
-		::wsprintf(s_lightUpKey, L"%d", ::g_lightUpKey);
-		::wsprintf(s_lightDownKey, L"%d", ::g_lightDownKey);
-		::wsprintf(s_lightResetKey, L"%d", ::g_lightResetKey);
-		::wsprintf(s_lightOptKey, L"%d", ::g_lightOptKey);
-		::WritePrivateProfileString(L"KeyBind", L"lightUpKey", s_lightUpKey, lpConfigPath);
-		::WritePrivateProfileString(L"KeyBind", L"lightDownKey", s_lightDownKey, lpConfigPath);
-		::WritePrivateProfileString(L"KeyBind", L"lightResetKey", s_lightResetKey, lpConfigPath);
-		::WritePrivateProfileString(L"KeyBind", L"lightOptKey", s_lightOptKey, lpConfigPath);
+		::WritePrivateProfileInt(L"KeyBind", L"lightUpKey", g_lightUpKey, lpConfigPath);
+		::WritePrivateProfileInt(L"KeyBind", L"lightDownKey", g_lightDownKey, lpConfigPath);
+		::WritePrivateProfileInt(L"KeyBind", L"lightResetKey", g_lightResetKey, lpConfigPath);
+		::WritePrivateProfileInt(L"KeyBind", L"lightOptKey", g_lightOptKey, lpConfigPath);
 
 		::WritePrivateProfileDouble(L"Gamma", L"gamma", ::g_gamma, lpConfigPath);
 		::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);
@@ -290,8 +305,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				if(wcscmp(lpOpt, L"-gamma") == 0){
 					// resetでリセットzzzz
 					if(wcscmp(lpStr, L"reset") == 0 || wcscmp(lpStr, L"default") == 0){
-						g_gamma = 1.0;
+						/*
+						g_gamma = DEFAULT_GAMMA;
 						SetGammaCorrect(g_gamma);
+						*/
+						resetGamma();
 					}else{
 						g_gamma = ::wcstod(lpStr, &lpEnd);
 						if(g_gamma == 0 && lpStr == lpEnd){
@@ -433,27 +451,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	return TRUE;
 }
 
-BOOL nextGamma(void)
-{
-	g_gamma += GAMMA_INCREMENT_VALUE;
-	if(g_gamma > GAMMA_MAX_VALUE)
-		g_gamma = GAMMA_MAX_VALUE;
-	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
-}
-
-BOOL prevGamma(void)
-{
-	g_gamma -= GAMMA_DECREMENT_VALUE;
-	if(g_gamma < GAMMA_MIN_VALUE) g_gamma = GAMMA_MIN_VALUE;
-	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
-}
-
-BOOL resetGamma(void)
-{
-	g_gamma = GAMMA_DEFAULT_VALUE;
-	return ::SetGammaCorrectRGBCareMonitor(g_gamma, g_gamma, g_gamma);
-}
-
 // モニタ関係なく、すべてのデスクトップ共通のガンマ変更プロシージャ
 BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -465,7 +462,7 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	case WM_HSCROLL:
 		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GAMMA) ){
 			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_gamma = pos * 5.00 / 100;
+			g_gamma = pos * MAX_GAMMA / SLIDER_SIZE;
 			g_gammaR = g_gammaG = g_gammaB = g_gamma;
 			
 			// 各モニタのガンマを意識したまま全体のガンマの上げ下げをする
@@ -475,25 +472,25 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
-			::SendDlgItemMessageA(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (5.00 / 100)));
-			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (5.00 / 100)));
-			::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (5.00 / 100)));
+			::SendDlgItemMessageA(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (MAX_GAMMA / SLIDER_SIZE)));
+			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (MAX_GAMMA / SLIDER_SIZE)));
+			::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (MAX_GAMMA / SLIDER_SIZE)));
 		}
 		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_RGAMMA) ){
 			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_gammaR = pos * 5.00 / 100;
+			g_gammaR = pos * MAX_GAMMA / SLIDER_SIZE;
 			SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 		}
 		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GGAMMA) ){
 			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_gammaG = pos * 5.00 / 100;
+			g_gammaG = pos * MAX_GAMMA / SLIDER_SIZE;
 			SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 		}
 		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_BGAMMA) ){
 			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_gammaB = pos * 5.00 / 100;
+			g_gammaB = pos * MAX_GAMMA / SLIDER_SIZE;
 			SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
 		}
@@ -506,37 +503,35 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
 
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_gamma / (5.00 / 100)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (5.00 / 100)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (5.00 / 100)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (5.00 / 100)));
+		::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_gamma / (MAX_GAMMA / SLIDER_SIZE)));
+		::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (MAX_GAMMA / SLIDER_SIZE)));
+		::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (MAX_GAMMA / SLIDER_SIZE)));
+		::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (MAX_GAMMA / SLIDER_SIZE)));
 
-		// 常に最前面に表示
-		::SetWindowPos(hDlg, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
+		::SetWindowTopMost(hDlg); // 常に最前面に表示
 		return TRUE;
 
 	case WM_COMMAND:     // ダイアログボックス内の何かが選択されたとき
 		switch( LOWORD( wp ) ){
-		case IDOK:       // 「OK」ボタンが選択された
+		case IDOK: // 「OK」ボタンが選択された
 			SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 			break;
-		case IDCANCEL:   // 「キャンセル」ボタンが選択された
-			// ダイアログボックスを消す
+		case IDCANCEL: // 「キャンセル」ボタンが選択された, ダイアログボックスを消す
 			EndDialog(g_hGammaDlg, LOWORD(wp));
 			g_hGammaDlg = NULL;
 			break;
 		case IDDEFAULT:
-			g_gamma = g_gammaR = g_gammaG = g_gammaB = 1.0;
+			g_gamma = g_gammaR = g_gammaG = g_gammaB = DEFAULT_GAMMA;
 			SetGammaCorrectRGBCareMonitor(g_gammaR, g_gammaG, g_gammaB);
 
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_gamma / (5.00 / 100)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (5.00 / 100)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (5.00 / 100)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (5.00 / 100)));
+			::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_gamma / (MAX_GAMMA / SLIDER_SIZE)));
+			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (MAX_GAMMA / SLIDER_SIZE)));
+			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (MAX_GAMMA / SLIDER_SIZE)));
+			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (MAX_GAMMA / SLIDER_SIZE)));
 
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 			break;
@@ -761,11 +756,6 @@ void SetCurrentKeyConfigToGUI(HWND hWnd)
 	::GlobalFree(reset);
 }
 
-BOOL SetWindowTopMost(HWND hWnd)
-{
-	return ::SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
-}
-
 #define DLG_KEYCONFIG_PROC_WINDOW_TITLE L"キー設定"
 #define DLG_KEYCONFIG_ASK L"キーを入力してください"
 #define DLG_KEYCONFIG_ASK_BUTTON_TITLE L"入力"
@@ -952,20 +942,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		// taskbar event
 		wm_taskbarCreated = RegisterWindowMessage(TEXT("TaskbarCreated"));
-
-		hTool = CreateWindowEx( 0 , TOOLTIPS_CLASS ,
-			NULL , TTS_ALWAYSTIP ,
-			CW_USEDEFAULT , CW_USEDEFAULT ,
-			CW_USEDEFAULT , CW_USEDEFAULT ,
-			hWnd , NULL , ((LPCREATESTRUCT)(lParam))->hInstance ,
-			NULL
-		);
-		::GetClientRect(hWnd, &ti.rect);
-		ti.cbSize = sizeof (TOOLINFO);
-		ti.uFlags = TTF_SUBCLASS | TTF_IDISHWND;
-		ti.hwnd = hWnd;
-		ti.lpszText = L"hoge fuga piyo";
-		SendMessage(hTool , TTM_ADDTOOL , 0 , (LPARAM)&ti);
 		break;
 	case WM_TASKTRAY:
 		switch(lParam){
@@ -1039,14 +1015,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 
 		case IDM_RESET:
-			g_gammaR = g_gammaG = g_gammaB = 1.0;
-			g_gamma = 1.0;
+			g_gammaR = g_gammaG = g_gammaB = g_gamma = DEFAULT_GAMMA;
 			for(int i=0; i<g_deviceContextCounter; i++){
-				monitorInfoList[i].r = 1.0;
-				monitorInfoList[i].g = 1.0;
-				monitorInfoList[i].b = 1.0;
-				monitorInfoList[i].level = 1.0;
-				::SetGammaCorrectMonitorRGB(monitorInfoList[i].hDC, 1.0, 1.0, 1.0);
+				monitorInfoList[i].r = DEFAULT_GAMMA;
+				monitorInfoList[i].g = DEFAULT_GAMMA;
+				monitorInfoList[i].b = DEFAULT_GAMMA;
+				monitorInfoList[i].level = DEFAULT_GAMMA;
+
+				::SetGammaCorrectMonitorRGB(monitorInfoList[i].hDC, DEFAULT_GAMMA, DEFAULT_GAMMA, DEFAULT_GAMMA);
 			}
 			break;
 			

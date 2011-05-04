@@ -28,6 +28,7 @@ BOOL CreateShortcut ( LPCTSTR pszTargetPath /* ターゲットパス */,
     LPCSTR pszShortcutPath /* ショートカットファイル(*.lnk)のパス */ );
 double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR path);
 BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR path);
+BOOL WritePrivateProfileInt(LPCTSTR section, LPCTSTR key, int val, LPCTSTR path);
 LPTSTR GetKeyNameTextEx(UINT vk);
 void ErrorMessageBox(LPTSTR message);
 BOOL GetExecuteDirectory(LPTSTR buffer, DWORD buffer_size);
@@ -38,3 +39,4 @@ BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB);
 BOOL SetMonitorGamma(HDC hdc, double gamma);
 BOOL SetGamma(double gammaR, double gammaG, double gammaB);
 BOOL SetGamma(double gamma);
+BOOL SetWindowTopMost(HWND hWnd);

@@ -362,9 +362,10 @@ BOOL CreateShortcut ( LPCTSTR pszTargetPath /* ターゲットパス */,
     return TRUE;
 }
 
+#define PROFILE_STRING_BUFFER_SIZE 256
 double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR path)
 {
-	TCHAR buf[256];
+	TCHAR buf[PROFILE_STRING_BUFFER_SIZE];
 	::GetPrivateProfileString(section, key, L"NOTFOUND", buf, sizeof(buf), path);
 
 	if(::wcscmp(buf, L"NOTFOUND") == 0 || ::wcscmp(buf, L"") == 0)
@@ -374,8 +375,15 @@ double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR
 
 BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR path)
 {
-	TCHAR buf[256];
+	TCHAR buf[PROFILE_STRING_BUFFER_SIZE];
 	::_stprintf_s(buf, L"%.2f", val);
+	return ::WritePrivateProfileString(section, key, buf, path);
+}
+
+BOOL WritePrivateProfileInt(LPCTSTR section, LPCTSTR key, int val, LPCTSTR path)
+{
+	TCHAR buf[PROFILE_STRING_BUFFER_SIZE];
+	::_stprintf_s(buf, L"%d", val);
 	return ::WritePrivateProfileString(section, key, buf, path);
 }
 
@@ -501,4 +509,9 @@ BOOL SetGamma(double gammaR, double gammaG, double gammaB)
 BOOL SetGamma(double gamma)
 {
 	return SetGamma(gamma, gamma, gamma);
+}
+
+BOOL SetWindowTopMost(HWND hWnd)
+{
+	return ::SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);
 }
