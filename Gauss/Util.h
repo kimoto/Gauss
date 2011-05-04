@@ -30,7 +30,7 @@ double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR
 BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR path);
 BOOL WritePrivateProfileInt(LPCTSTR section, LPCTSTR key, int val, LPCTSTR path);
 LPTSTR GetKeyNameTextEx(UINT vk);
-void ErrorMessageBox(LPTSTR message);
+void ErrorMessageBox(LPCTSTR message, ...);
 BOOL GetExecuteDirectory(LPTSTR buffer, DWORD buffer_size);
 BOOL SetDlgItemDouble(HWND hWnd, UINT id, double value);
 double GetDlgItemDouble(HWND hWnd, UINT id);

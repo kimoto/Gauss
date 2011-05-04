@@ -417,10 +417,17 @@ LPTSTR GetKeyNameTextEx(UINT vk)
 	return buffer;
 }
 
-void ErrorMessageBox(LPTSTR message)
+void ErrorMessageBox(LPCTSTR format, ...)
 {
-	::MessageBox(NULL, message, L"Error", MB_OK);
+	va_list arg;
+	va_start(arg, format);
+
+	TCHAR buffer[TRACE_BUFFER_SIZE];
+	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
+	::MessageBox(NULL, buffer, L"Error", MB_OK);
+	va_end(arg);
 }
+
 
 BOOL GetExecuteDirectory(LPTSTR buffer, DWORD size_in_words)
 {
