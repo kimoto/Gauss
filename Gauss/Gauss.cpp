@@ -135,57 +135,56 @@ void RecognizeMonitors(void)
 	EnumDisplayMonitors(::GetDC(NULL), NULL, MonitorEnumProc, 0);
 }
 
+// 設定ファイルのパスを取得します
+// 実行ファイルのディレクトリに、config.ini(デフォルト)を付加した物になります
+// 動的にバッファを格納して返却するので、解放必須です
+LPTSTR GetConfigPath(LPTSTR fileName=L"config.ini")
+{
+	LPTSTR lpExecDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
+	if( ::GetExecuteDirectory(lpExecDirectory, MAX_PATH) ) {
+		LPTSTR lpConfigPath = sprintf_alloc(L"%s%s", lpExecDirectory, fileName);
+		::GlobalFree(lpExecDirectory);
+		return lpConfigPath;
+	} else {
+		::GlobalFree(lpExecDirectory);
+		::ShowLastError();
+		return NULL;
+	}
+}
+
 void LoadConfig(void)
 {
-	LPTSTR lpCurrentDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
+	LPTSTR lpConfigPath = ::GetConfigPath();
+	
+	::g_lightUpKey = ::GetPrivateProfileInt(L"KeyBind", L"lightUpKey", VK_PRIOR, lpConfigPath);
+	::g_lightDownKey = ::GetPrivateProfileInt(L"KeyBind", L"lightDownKey", VK_NEXT, lpConfigPath);
+	::g_lightResetKey = ::GetPrivateProfileInt(L"KeyBind", L"lightResetKey", VK_HOME, lpConfigPath);
+	::g_lightOptKey = ::GetPrivateProfileInt(L"KeyBind", L"lightOptKey", VK_CONTROL, lpConfigPath);
 
-	if( ::GetExecuteDirectory(lpCurrentDirectory, MAX_PATH) ) {
-		LPTSTR lpConfigPath = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
-		::wsprintf(lpConfigPath, L"%s%s", lpCurrentDirectory, L"config.ini");
-		
-		::g_lightUpKey = ::GetPrivateProfileInt(L"KeyBind", L"lightUpKey", VK_PRIOR, lpConfigPath);
-		::g_lightDownKey = ::GetPrivateProfileInt(L"KeyBind", L"lightDownKey", VK_NEXT, lpConfigPath);
-		::g_lightResetKey = ::GetPrivateProfileInt(L"KeyBind", L"lightResetKey", VK_HOME, lpConfigPath);
-		::g_lightOptKey = ::GetPrivateProfileInt(L"KeyBind", L"lightOptKey", VK_CONTROL, lpConfigPath);
-
-		::g_gamma = ::GetPrivateProfileDouble(L"Gamma", L"gamma", DEFAULT_GAMMA, lpConfigPath);
-		::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", DEFAULT_GAMMA, lpConfigPath);
-		::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", DEFAULT_GAMMA, lpConfigPath);
-		::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", DEFAULT_GAMMA, lpConfigPath);
-		
-		::GlobalFree(lpConfigPath);
-	}else{
-		::ShowLastError();
-	}
-
-	::GlobalFree(lpCurrentDirectory);
+	::g_gamma = ::GetPrivateProfileDouble(L"Gamma", L"gamma", DEFAULT_GAMMA, lpConfigPath);
+	::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", DEFAULT_GAMMA, lpConfigPath);
+	::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", DEFAULT_GAMMA, lpConfigPath);
+	::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", DEFAULT_GAMMA, lpConfigPath);
+	
+	::GlobalFree(lpConfigPath);
 }
 
 void SaveConfig(void)
 {
-	LPTSTR lpCurrentDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
-
 	// プログラム(実行ファイル)のあるフォルダに設定を保存します
-	if( ::GetExecuteDirectory(lpCurrentDirectory, MAX_PATH) ){
-		LPTSTR lpConfigPath = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
-		::wsprintf(lpConfigPath, L"%s\\%s", lpCurrentDirectory, L"config.ini");
+	LPTSTR lpConfigPath = ::GetConfigPath();
+	
+	::WritePrivateProfileInt(L"KeyBind", L"lightUpKey", g_lightUpKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightDownKey", g_lightDownKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightResetKey", g_lightResetKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightOptKey", g_lightOptKey, lpConfigPath);
 
-		::WritePrivateProfileInt(L"KeyBind", L"lightUpKey", g_lightUpKey, lpConfigPath);
-		::WritePrivateProfileInt(L"KeyBind", L"lightDownKey", g_lightDownKey, lpConfigPath);
-		::WritePrivateProfileInt(L"KeyBind", L"lightResetKey", g_lightResetKey, lpConfigPath);
-		::WritePrivateProfileInt(L"KeyBind", L"lightOptKey", g_lightOptKey, lpConfigPath);
+	::WritePrivateProfileDouble(L"Gamma", L"gamma", ::g_gamma, lpConfigPath);
+	::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);
+	::WritePrivateProfileDouble(L"Gamma", L"gammaG", ::g_gammaG, lpConfigPath);
+	::WritePrivateProfileDouble(L"Gamma", L"gammaB", ::g_gammaB, lpConfigPath);
 
-		::WritePrivateProfileDouble(L"Gamma", L"gamma", ::g_gamma, lpConfigPath);
-		::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);
-		::WritePrivateProfileDouble(L"Gamma", L"gammaG", ::g_gammaG, lpConfigPath);
-		::WritePrivateProfileDouble(L"Gamma", L"gammaB", ::g_gammaB, lpConfigPath);
-
-		::GlobalFree(lpConfigPath);
-	}else{
-		::ShowLastError();
-	}
-
-	::GlobalFree(lpCurrentDirectory);
+	::GlobalFree(lpConfigPath);
 }
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
@@ -387,9 +386,9 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
-			::SendDlgItemMessageA(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessageA(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessageA(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (MAX_GAMMA / SLIDER_SIZE)));
+			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (MAX_GAMMA / SLIDER_SIZE)));
+			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (MAX_GAMMA / SLIDER_SIZE)));
+			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (MAX_GAMMA / SLIDER_SIZE)));
 		}
 		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_RGAMMA) ){
 			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
