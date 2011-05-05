@@ -30,6 +30,7 @@ double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR
 BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR path);
 BOOL WritePrivateProfileInt(LPCTSTR section, LPCTSTR key, int val, LPCTSTR path);
 LPTSTR GetKeyNameTextEx(UINT vk);
+LPTSTR GetKeyConfigString(int vk, int opt_vk);
 void ErrorMessageBox(LPCTSTR message, ...);
 BOOL GetExecuteDirectory(LPTSTR buffer, DWORD buffer_size);
 BOOL SetDlgItemDouble(HWND hWnd, UINT id, double value);
@@ -40,5 +41,6 @@ BOOL SetMonitorGamma(HDC hdc, double gamma);
 BOOL SetGamma(double gammaR, double gammaG, double gammaB);
 BOOL SetGamma(double gamma);
 BOOL SetWindowTopMost(HWND hWnd);
+BOOL SetWindowTextFormat(HWND hWnd, LPTSTR format, ...);
 
 LPTSTR sprintf_alloc(LPTSTR format, ...);

@@ -417,6 +417,31 @@ LPTSTR GetKeyNameTextEx(UINT vk)
 	return buffer;
 }
 
+// 指定されたキーの組み合わせのの文字列表現を取得します
+// 返却されるバッファは動的に確保しますので、使用後は解放が必要です
+// たとえば VK_ENTER + VK_CONTROLの場合は "Ctrl + ENTER" みたいな文字列に変換される
+LPTSTR GetKeyConfigString(int vk, int opt_vk)
+{
+	// wp == optのときは、Ctrl + Ctrlとかなので重複して表示させないようにケア
+	if( vk == opt_vk )
+		opt_vk = NULL;
+
+	LPTSTR vk_str = ::GetKeyNameTextEx(vk);
+	LPTSTR opt_vk_str = ::GetKeyNameTextEx(opt_vk);
+
+	LPTSTR s_buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
+	if(opt_vk != NULL){ // CONTROL,ALTキーが設定されていた場合はALT + Bみたいな文字列になる
+		::wsprintf(s_buffer, L"%s + %s", opt_vk_str, vk_str);
+	}else{
+		::wsprintf(s_buffer, vk_str);
+	}
+
+	::GlobalFree(vk_str);
+	::GlobalFree(opt_vk_str);
+
+	return s_buffer;
+}
+
 void ErrorMessageBox(LPCTSTR format, ...)
 {
 	va_list arg;
@@ -533,4 +558,17 @@ LPTSTR sprintf_alloc(LPTSTR format, ...)
 	va_end(arg);
 
 	return buffer;
+}
+
+BOOL SetWindowTextFormat(HWND hWnd, LPTSTR format, ...)
+{
+	va_list arg;
+	va_start(arg, format);
+
+	TCHAR buffer[TRACE_BUFFER_SIZE];
+	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
+	::SetWindowText(hWnd, buffer);
+	va_end(arg);
+
+	return TRUE;
 }
