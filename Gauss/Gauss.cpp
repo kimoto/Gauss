@@ -38,6 +38,7 @@
 #define DLG_KEYCONFIG_ASK L"キーを入力してください"
 #define DLG_KEYCONFIG_ASK_BUTTON_TITLE L"入力"
 #define DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE L"設定"
+#define DLG_MONITOR_GAMMA_WINDOW_TITLE_FORMAT L"%sのガンマ調節"
 
 // 複数のアイコンを識別するためのID定数
 #define ID_TRAYICON  (1)
@@ -468,10 +469,10 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 // モニタごとのガンマ変更プロシージャ
 BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
+	static MonitorInfo *monitor = NULL;
 	BOOL result = false;
 	double level = 0;
 	int delta = 0;
-	MonitorInfo *monitor = gammaController.monitorGet(::g_hMonitorTargetIndex);
 	int pos;
 	double gamma_value;
 
@@ -492,40 +493,37 @@ BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
 			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
 		}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_RGAMMA) ){
-			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
 			monitor->r = gamma_value;
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
 		}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GGAMMA) ){
-			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
 			monitor->g = gamma_value;
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
 		}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_BGAMMA) ){
-			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
 			monitor->b = gamma_value;
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
 		}
 		gammaController.setMonitorGammaIndex(::g_hMonitorTargetIndex, monitor->r, monitor->g, monitor->b, monitor->level);
-		break;
+		return TRUE;
+
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
-		{
-			MonitorInfo *monitor = gammaController.monitorGet(::g_hMonitorTargetIndex);
+		// このGUIにて編集しようとしているモニタの設定を取得し格納する
+		monitor = gammaController.monitorGet(::g_hMonitorTargetIndex);
 
-			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
+		::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
+		::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
+		::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
+		::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
 			
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(monitor->level / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(monitor->r / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
+		::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(monitor->level / (MAX_GAMMA / SLIDER_SIZE)));
+		::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(monitor->r / (MAX_GAMMA / SLIDER_SIZE)));
+		::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
+		::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
 
-			// ウインドウのタイトルをどのモニタかわかるようなものに
-			::SetWindowTextFormat(hDlg, L"%sのガンマ調節", monitor->monitorName);
+		// ウインドウのタイトルをどのモニタかわかるようなものに
+		::SetWindowTextFormat(hDlg, DLG_MONITOR_GAMMA_WINDOW_TITLE_FORMAT, monitor->monitorName);
 
-			// 常に最前面に表示
-			::SetWindowTopMost(hDlg);
-		}
+		// 常に最前面に表示
+		::SetWindowTopMost(hDlg);
 		return TRUE;
 
 	case WM_COMMAND:     // ダイアログボックス内の何かが選択されたとき
