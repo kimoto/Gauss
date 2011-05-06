@@ -19,13 +19,25 @@
 #include "GammaController.h"
 
 #include "KeyHook.h"
+#ifdef _WIN64
+#pragma comment(lib, "KeyHook64.lib")
+#else
 #pragma comment(lib, "KeyHook.lib")
+#endif
 
 /*
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
 */
+
+// for x64 environment
+#ifdef _WIN64
+#undef GWL_HINSTANCE
+#define GWL_HINSTANCE GWLP_HINSTANCE
+#undef GetWindowLong
+#define GetWindowLong GetWindowLongPtr
+#endif
 
 #define MUTEX_NAME L"Gauss"
 #define TASKTRAY_TOOLTIP_TEXT L"ガンマ値変更ツール"
@@ -74,6 +86,8 @@ int g_lightOptKey = VK_CONTROL;
 HHOOK g_hKeyConfigHook = NULL;
 
 GammaController gammaController; // gamma制御用の関数まとめたクラス
+
+HDC g_test = (HDC)INVALID_HANDLE_VALUE;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -286,21 +300,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	return (int) msg.wParam;
 }
 
-
-
-//
-//  関数: MyRegisterClass()
-//
-//  目的: ウィンドウ クラスを登録します。
-//
-//  コメント:
-//
-//    この関数および使い方は、'RegisterClassEx' 関数が追加された
-//    Windows 95 より前の Win32 システムと互換させる場合にのみ必要です。
-//    アプリケーションが、関連付けられた
-//    正しい形式の小さいアイコンを取得できるようにするには、
-//    この関数を呼び出してください。
-//
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
 	WNDCLASSEX wcex;
@@ -345,6 +344,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
+   // ガンマの変更テスト
+   g_test = ::GetDC(hWnd);
+   
 	// 構造体メンバの設定
 	nid.cbSize           = sizeof( NOTIFYICONDATA );
 	nid.uFlags           = (NIF_ICON|NIF_MESSAGE|NIF_TIP);
@@ -366,7 +368,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 }
 
 // モニタ関係なく、すべてのデスクトップに対するガンマ変更プロシージャ
-BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
+INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	BOOL result = false;
 	double level = 0;
@@ -408,8 +410,6 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
 		}
-		break;
-	case WM_MOUSEWHEEL:
 		break;
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
 		::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
@@ -466,7 +466,7 @@ BOOL CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 }
 
 // モニタごとのガンマ変更プロシージャ
-BOOL CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
+INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	static MonitorInfo *monitor = NULL;
 	BOOL result = false;
@@ -605,7 +605,7 @@ BOOL stopOrResume(HWND hWnd)
 	return bStopedFlag;
 }
 
-// キーフック用のプロシージャ
+// キー設定用、キーフックプロシージャ(not グローバル / グローバルはDLLを利用しなければ行えない)
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
 {
 	//nCodeが0未満のときは、CallNextHookExが返した値を返す
@@ -640,7 +640,7 @@ void SetCurrentKeyConfigToGUI(HWND hWnd)
 	::GlobalFree(reset);
 }
 
-BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
+INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	static UINT targetID = -1;
 	BYTE keyTbl[256];
@@ -783,21 +783,9 @@ BOOL CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	return FALSE;  // DefWindowProc()ではなく、FALSEを返すこと！
 }
 
-//
-//  関数: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  目的:  メイン ウィンドウのメッセージを処理します。
-//
-//  WM_COMMAND	- アプリケーション メニューの処理
-//  WM_PAINT	- メイン ウィンドウの描画
-//  WM_DESTROY	- 中止メッセージを表示して戻る
-//
-//
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	int wmId, wmEvent;
-	PAINTSTRUCT ps;
-	HDC hdc;
 	HMENU hMenu = NULL;
 	HMENU hSubMenu = NULL;
 	static UINT wm_taskbarCreated;
@@ -809,9 +797,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
-	case WM_MOUSEWHEEL:
-		::OutputDebugString(TEXT("wheeeeel"));
-		break;
 	case WM_CREATE:
 		// モニタの種類、数を認識する
 		RecognizeMonitors();
@@ -869,9 +854,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			TrackPopupMenu(hSubMenu, TPM_LEFTALIGN | TPM_RIGHTBUTTON, point.x, point.y, 0, hWnd, NULL);
 			PostMessage(hWnd, WM_NULL, 0, 0);
 			break;
-		case WM_MOUSEWHEEL:
-			::OutputDebugString(TEXT("wheel"));
-			break;
 		}
 		break;
 	case WM_COMMAND:
@@ -917,13 +899,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				// モニタのIDがわかったのでそいつを対象としたダイアログ表示
 				if(!g_hMonitorGammaDlg)
-					g_hMonitorGammaDlg = CreateDialog(hInst, TEXT("IDD_GAMMA_DIALOG"), hWnd, &DlgMonitorGammaProc);
+					g_hMonitorGammaDlg = CreateDialog(hInst, TEXT("IDD_GAMMA_DIALOG"), hWnd, DlgMonitorGammaProc);
 			}
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
 	case WM_USER_MESSAGE:
-		// VK_PRIOR, VK_NEXT = PgUp, PgDOWN
+		// DLLによるグローバルキーフックで、キー入力を検知したときに呼ばれます
 		if(g_lightOptKey == NULL){
 			if(wParam == g_lightUpKey){
 				gammaController.increment();
@@ -944,15 +926,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
-	case WM_PAINT:
-		hdc = BeginPaint(hWnd, &ps);
-		// TODO: 描画コードをここに追加してください...
-		EndPaint(hWnd, &ps);
-		break;
 	case WM_CLOSE:
 		SetMenu(hWnd, NULL);
 		DestroyMenu(hMenu);
 		hMenu = NULL;
+		break;
 	case WM_DESTROY:
 		SaveConfig();
 

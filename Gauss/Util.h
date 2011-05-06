@@ -7,6 +7,13 @@
 
 #include <math.h>
 
+// ダイアログ用のメッセージクラッカー
+#define HANDLE_DLG_MSG(hwnd, msg, fn) \
+    case(msg): \
+	return SetDlgMsgResult(hwnd, msg, HANDLE_##msg(hwnd, wParam, lParam,fn)) 
+
+#define SLIDER_GETPOS(lp) (::SendMessage((HWND)lp, TBM_GETPOS, 0, 0))
+
 void trace(LPCTSTR format, ...);
 void FillRectBrush(HDC hdc, int x, int y, int width, int height, COLORREF color);
 void BorderedRect(HDC hdc, int x, int y, int width, int height, COLORREF color);
