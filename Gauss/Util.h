@@ -1,11 +1,21 @@
 ﻿#pragma once
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <WindowsX.h>
+#include <stdlib.h>
+#include <tchar.h>
 #include <MMSystem.h>
 #pragma comment(lib, "winmm")
 
 #include <shlobj.h>
 #pragma comment(lib, "shell32.lib")
 
+#include <Shlwapi.h>
+#pragma comment(lib, "shlwapi")
+
 #include <math.h>
+
+#include "stdafx.h"
 
 // ダイアログ用のメッセージクラッカー
 #define HANDLE_DLG_MSG(hwnd, msg, fn) \
@@ -13,6 +23,9 @@
 	return SetDlgMsgResult(hwnd, msg, HANDLE_##msg(hwnd, wParam, lParam,fn)) 
 
 #define SLIDER_GETPOS(lp) (::SendMessage((HWND)lp, TBM_GETPOS, 0, 0))
+
+#define DLLIMPORT extern "C" __declspec(dllimport)
+#define DLLEXPORT extern "C" __declspec(dllimport)
 
 void trace(LPCTSTR format, ...);
 void FillRectBrush(HDC hdc, int x, int y, int width, int height, COLORREF color);
@@ -49,5 +62,34 @@ BOOL SetGamma(double gammaR, double gammaG, double gammaB);
 BOOL SetGamma(double gamma);
 BOOL SetWindowTopMost(HWND hWnd);
 BOOL SetWindowTextFormat(HWND hWnd, LPTSTR format, ...);
-
 LPTSTR sprintf_alloc(LPTSTR format, ...);
+LPTSTR GetDirectoryFromPath(LPCTSTR path);
+LPTSTR GetBaseName(LPCTSTR path);
+LPTSTR GetBackupFilePath(LPCTSTR filePath, LPCTSTR backupExt);
+BOOL BackupFile(LPCTSTR filePath, LPCTSTR backupExt);
+BOOL RestoreFile(LPCTSTR filePath, LPCTSTR backupExt);
+LPTSTR GetWindowTitle(HWND hWnd);
+
+// 多重起動防止用簡易クラス
+#include <exception>
+class CMutex{
+private:
+	HANDLE m_hMutex;
+public:
+	CMutex(){
+	}
+	
+	~CMutex(){
+		::ReleaseMutex(this->m_hMutex);
+		::CloseHandle(this->m_hMutex);
+	}
+
+	void createMutex(LPCTSTR mutexName){
+		this->m_hMutex = CreateMutex(NULL, TRUE, mutexName);
+		if(GetLastError() == ERROR_ALREADY_EXISTS){
+			ReleaseMutex(this->m_hMutex);
+			CloseHandle(this->m_hMutex);
+			throw ::std::exception();
+		}
+	}
+};

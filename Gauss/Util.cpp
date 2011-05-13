@@ -5,6 +5,15 @@
 #define FORMAT_BUFFER_SIZE 1024
 #define MCI_LASTERROR_BUFSIZE 1024
 
+// GlobalAllocのインターフェースで、heapを確保する関数
+// 過去のコード書き直すのめんどかったのでつくった
+// 名前はおかしい
+// 引数のflagsは完全に無視されます
+LPVOID GlobalAllocHeap(UINT flags, SIZE_T size)
+{
+	return ::HeapAlloc(::GetProcessHeap(), HEAP_ZERO_MEMORY | HEAP_GENERATE_EXCEPTIONS, size);
+}
+
 void trace(LPCTSTR format, ...)
 {
 	va_list arg;
@@ -79,7 +88,7 @@ void drawRectColor(HDC hdc, int x, int y, int width, int height, COLORREF color,
 
 void mciShowLastError(MMRESULT result)
 {
-	LPTSTR lpstr = (LPWSTR)::GlobalAlloc(GMEM_FIXED, MCI_LASTERROR_BUFSIZE);
+	LPTSTR lpstr = (LPTSTR)::GlobalAllocHeap(GMEM_FIXED, MCI_LASTERROR_BUFSIZE);
 	mciGetErrorString(result, lpstr, MCI_LASTERROR_BUFSIZE);
 	::MessageBox(NULL, lpstr, L"ERROR", MB_OK);
 }
@@ -412,7 +421,7 @@ LPTSTR GetKeyNameTextEx(UINT vk)
 		break;
 	}
 
-	LPTSTR buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, KEYNAMETEXT_BUFFER_SIZE);
+	LPTSTR buffer = (LPTSTR)::GlobalAllocHeap(GMEM_FIXED | GMEM_ZEROINIT, KEYNAMETEXT_BUFFER_SIZE);
 	::GetKeyNameText(lParam, buffer, KEYNAMETEXT_BUFFER_SIZE);
 	return buffer;
 }
@@ -429,7 +438,7 @@ LPTSTR GetKeyConfigString(int vk, int opt_vk)
 	LPTSTR vk_str = ::GetKeyNameTextEx(vk);
 	LPTSTR opt_vk_str = ::GetKeyNameTextEx(opt_vk);
 
-	LPTSTR s_buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, 256);
+	LPTSTR s_buffer = (LPTSTR)::GlobalAllocHeap(GMEM_FIXED | GMEM_ZEROINIT, 256);
 	if(opt_vk != NULL){ // CONTROL,ALTキーが設定されていた場合はALT + Bみたいな文字列になる
 		::wsprintf(s_buffer, L"%s + %s", opt_vk_str, vk_str);
 	}else{
@@ -453,7 +462,7 @@ void ErrorMessageBox(LPCTSTR format, ...)
 	va_end(arg);
 }
 
-
+// 現在のプロセスの実行ファイルの存在するパスを取得します
 BOOL GetExecuteDirectory(LPTSTR buffer, DWORD size_in_words)
 {
 	TCHAR modulePath[MAX_PATH]; 
@@ -553,7 +562,7 @@ LPTSTR sprintf_alloc(LPTSTR format, ...)
 	va_list arg;
 	va_start(arg, format);
 	
-	LPTSTR buffer = (LPTSTR)::GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT, TRACE_BUFFER_SIZE * sizeof(TCHAR));
+	LPTSTR buffer = (LPTSTR)::GlobalAllocHeap(GMEM_FIXED | GMEM_ZEROINIT, TRACE_BUFFER_SIZE * sizeof(TCHAR));
 	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
 	va_end(arg);
 
@@ -571,4 +580,107 @@ BOOL SetWindowTextFormat(HWND hWnd, LPTSTR format, ...)
 	va_end(arg);
 
 	return TRUE;
+}
+
+LPTSTR GetDirectoryFromPath(LPCTSTR path)
+{
+	TCHAR drive[MAX_PATH];
+	TCHAR dir[MAX_PATH];
+	
+	::_wsplitpath_s(path, drive, MAX_PATH, dir, MAX_PATH, NULL, 0, NULL, 0);
+	return ::sprintf_alloc(L"%s%s", drive, dir);
+}
+
+LPTSTR GetBaseName(LPCTSTR path)
+{
+	TCHAR filename[MAX_PATH];
+	TCHAR ext[MAX_PATH];
+	::_wsplitpath_s(path, NULL, 0, NULL, 0, filename, MAX_PATH, ext, MAX_PATH);
+	return ::sprintf_alloc(L"%s%s", filename, ext);
+}
+
+// ファイルパスを元に、バックアップ対象のファイルパスを構築します
+// test.txt -> test.txt.bak みたいなかんじ
+LPTSTR GetBackupFilePath(LPCTSTR filePath, LPCTSTR backupExt)
+{
+	// 指定されたファイルのDirectoryを取得する
+	LPTSTR directoryPath = ::GetDirectoryFromPath(filePath);
+	LPTSTR baseName = ::GetBaseName(filePath);
+
+	// バックアップ先ファイル名構築
+	LPTSTR backupFilePath = ::sprintf_alloc(L"%s%s%s", directoryPath, baseName, backupExt);
+	
+	// 解放します
+	::GlobalFree(directoryPath);
+	::GlobalFree(baseName);
+	return backupFilePath;
+}
+
+// 指定されたパスと同じ場所にバックアップファイルを作成します
+// 元のファイル名 + .bak
+// たとえばtest.txtのバックアップファイルはtest.txt.bakになります
+// filepathはfullpathであること
+BOOL BackupFile(LPCTSTR filePath, LPCTSTR backupExt=L".bak")
+{
+	BOOL bRet = FALSE;
+
+	// バックアップ対象ファイルが実際に存在することを確認
+	if( ::PathFileExists(filePath) ) {
+		// 実際のバックアップ処理
+		LPTSTR backupFilePath = ::GetBackupFilePath(filePath, backupExt);
+		
+		trace(L"BackupFile: %s -> %s\n", filePath, backupFilePath);
+		if( !::CopyFile(filePath, backupFilePath, FALSE) ){ // すでにファイルがあっても上書きします
+			//::ShowLastError();
+			//::ErrorMessageBox(L"バックアップ先にすでにファイルが存在しています\n%s", backupFilePath);
+			bRet = FALSE;
+		}else{
+			bRet = TRUE; // SUCCESS!
+		}
+
+		::GlobalFree(backupFilePath);
+	}else{
+		// 対象ファイルなかったらエラー
+		::ShowLastError();
+		bRet = FALSE;
+	}
+
+	return bRet;
+}
+
+// 指定されたパスをもとに、バックアップファイル名を推測し
+// 復元処理を行います
+// 元のファイル名 + .bakのファイルを探してきて、copy 元のファイル名.bak -> 元のファイル名します
+// filepathはfullpathであること
+BOOL RestoreFile(LPCTSTR filePath, LPCTSTR backupExt=L".bak")
+{
+	BOOL bRet = FALSE;
+	LPTSTR backupFilePath = ::GetBackupFilePath(filePath, backupExt);
+
+	// 復元対象ファイルが実際に存在することを確認
+	if( ::PathFileExists(backupFilePath) ) {
+		// 実際のバックアップ処理
+		trace(L"RestoreFile: %s -> %s\n", backupFilePath, filePath);
+		if( !::CopyFile(backupFilePath, filePath, FALSE) ){ // すでにファイルがあっても上書きします
+			//::ShowLastError();
+			//::ErrorMessageBox(L"バックアップ先にすでにファイルが存在しています\n%s", backupFilePath);
+			bRet = FALSE;
+		}else{
+			bRet = TRUE; // SUCCESS!
+		}
+	}else{
+		// 対象ファイルなかったらエラー
+		::ShowLastError();
+		bRet = FALSE;
+	}
+
+	::GlobalFree(backupFilePath);
+	return bRet;
+}
+
+LPTSTR GetWindowTitle(HWND hWnd)
+{
+	LPTSTR buffer = (LPTSTR)::GlobalAllocHeap(GMEM_FIXED, 256 * sizeof(TCHAR));
+	::GetWindowText(hWnd, buffer, 256);
+	return buffer;
 }
