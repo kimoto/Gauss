@@ -20,7 +20,7 @@ void trace(LPCTSTR format, ...)
 	va_start(arg, format);
 	
 	TCHAR buffer[TRACE_BUFFER_SIZE];
-	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
+	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, _TRUNCATE, format, arg);
 	::OutputDebugString(buffer);	
 	va_end(arg);
 }
@@ -31,7 +31,7 @@ void DrawFormatText(HDC hdc, LPRECT rect, UINT type, LPCTSTR format, ...)
 	va_start(arg, format);
 	
 	TCHAR buffer[TRACE_BUFFER_SIZE];
-	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
+	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, _TRUNCATE, format, arg);
 	::DrawText(hdc, buffer, lstrlen(buffer), rect, type);	
 	va_end(arg);
 }
@@ -42,7 +42,7 @@ void TextFormatOut(HDC hdc, int x, int y, LPCTSTR format, ...)
 	va_start(arg, format);
 	
 	TCHAR buffer[FORMAT_BUFFER_SIZE];
-	::_vsnwprintf_s(buffer, FORMAT_BUFFER_SIZE, FORMAT_BUFFER_SIZE, format, arg);
+	::_vsnwprintf_s(buffer, FORMAT_BUFFER_SIZE, _TRUNCATE, format, arg);
 	::TextOut(hdc, x, y, buffer, lstrlen(buffer));
 	va_end(arg);
 }
@@ -457,7 +457,7 @@ void ErrorMessageBox(LPCTSTR format, ...)
 	va_start(arg, format);
 
 	TCHAR buffer[TRACE_BUFFER_SIZE];
-	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
+	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, _TRUNCATE, format, arg);
 	::MessageBox(NULL, buffer, L"Error", MB_OK);
 	va_end(arg);
 }
@@ -563,7 +563,7 @@ LPTSTR sprintf_alloc(LPTSTR format, ...)
 	va_start(arg, format);
 	
 	LPTSTR buffer = (LPTSTR)::GlobalAllocHeap(GMEM_FIXED | GMEM_ZEROINIT, TRACE_BUFFER_SIZE * sizeof(TCHAR));
-	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
+	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, _TRUNCATE, format, arg);
 	va_end(arg);
 
 	return buffer;
@@ -575,7 +575,7 @@ BOOL SetWindowTextFormat(HWND hWnd, LPTSTR format, ...)
 	va_start(arg, format);
 
 	TCHAR buffer[TRACE_BUFFER_SIZE];
-	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, TRACE_BUFFER_SIZE, format, arg);
+	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, _TRUNCATE, format, arg);
 	::SetWindowText(hWnd, buffer);
 	va_end(arg);
 
