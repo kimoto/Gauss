@@ -110,7 +110,7 @@ LPTSTR GetKeyInfoString(KEYINFO *keyInfo)
 		shift	= ::GetKeyNameTextEx(keyInfo->shiftKey);
 	if(keyInfo->key != KEY_NOT_SET)
 		key		= ::GetKeyNameTextEx(keyInfo->key);
-	
+
 	LPTSTR buffer = NULL;
 	if(alt == NULL && ctrl == NULL && shift == NULL && key == NULL){
 		buffer = ::sprintf_alloc(L"");
@@ -134,7 +134,7 @@ LPTSTR GetKeyInfoString(KEYINFO *keyInfo)
 		buffer = ::sprintf_alloc(L"undef!");
 		::ErrorMessageBox(L"キー設定に失敗しました");
 	}
-	
+
 	::GlobalFree(alt);
 	::GlobalFree(ctrl);
 	::GlobalFree(shift);
@@ -153,12 +153,12 @@ BOOL CreateDesktopShortcutForGamma(double gamma)
 	if( GetModuleFileName(NULL, (LPWSTR)szPath, sizeof(szPath)) == 0 ){
 		return FALSE;
 	}
-	
+
 	TCHAR linkPath[MAX_PATH];
 	TCHAR gammaOption[MAX_PATH];
 	::_stprintf_s(linkPath, L"%s\\ガンマ%.2f.lnk", desktopPath, gamma);
 	::_stprintf_s(gammaOption, L"-gamma %.1f", gamma);
-	
+
 	::CoInitialize(NULL);
 	BOOL result = CreateShortcut(szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
 	::CoUninitialize();
@@ -167,26 +167,26 @@ BOOL CreateDesktopShortcutForGamma(double gamma)
 }
 
 BOOL CALLBACK MonitorEnumProc(
-  HMONITOR hMonitor,  // ディスプレイモニタのハンドル
-  HDC hdcMonitor,     // モニタに適したデバイスコンテキストのハンドル
-  LPRECT lprcMonitor, // モニタ上の交差部分を表す長方形領域へのポインタ
-  LPARAM dwData       // EnumDisplayMonitors から渡されたデータ
-){
+	HMONITOR hMonitor,  // ディスプレイモニタのハンドル
+	HDC hdcMonitor,     // モニタに適したデバイスコンテキストのハンドル
+	LPRECT lprcMonitor, // モニタ上の交差部分を表す長方形領域へのポインタ
+	LPARAM dwData       // EnumDisplayMonitors から渡されたデータ
+	){
 #define MONITOR_WORDS MAX_PATH
 
-	// モニタの情報を取得する
-    MONITORINFOEX stMonInfoEx;
-    stMonInfoEx.cbSize = sizeof(stMonInfoEx);
-    ::GetMonitorInfo(hMonitor, &stMonInfoEx);
+		// モニタの情報を取得する
+		MONITORINFOEX stMonInfoEx;
+		stMonInfoEx.cbSize = sizeof(stMonInfoEx);
+		::GetMonitorInfo(hMonitor, &stMonInfoEx);
 
-	HDC hDC = ::CreateDC(L"DISPLAY", stMonInfoEx.szDevice, NULL, NULL);
-	LPTSTR deviceName = sprintf_alloc(L"%s", stMonInfoEx.szDevice);
-	LPTSTR monitorName = sprintf_alloc(L"モニタ%d", gammaController.monitorGetCount() + 1);
+		HDC hDC = ::CreateDC(L"DISPLAY", stMonInfoEx.szDevice, NULL, NULL);
+		LPTSTR deviceName = sprintf_alloc(L"%s", stMonInfoEx.szDevice);
+		LPTSTR monitorName = sprintf_alloc(L"モニタ%d", gammaController.monitorGetCount() + 1);
 
-	// 取得した情報を設定します
-	gammaController.monitorAdd(hDC, deviceName, monitorName);
+		// 取得した情報を設定します
+		gammaController.monitorAdd(hDC, deviceName, monitorName);
 
-	return TRUE;
+		return TRUE;
 }
 
 // モニタの数と名前を再認識する
@@ -216,7 +216,7 @@ LPTSTR GetConfigPath(LPTSTR fileName=L"config.ini")
 void LoadConfig(void)
 {
 	LPTSTR lpConfigPath = ::GetConfigPath();
-	
+
 	// clear keyinfo
 	::ClearKeyInfo(&g_lightUpKeyInfo);
 	::ClearKeyInfo(&g_lightDownKeyInfo);
@@ -244,7 +244,7 @@ void LoadConfig(void)
 	::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", DEFAULT_GAMMA, lpConfigPath);
 	::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", DEFAULT_GAMMA, lpConfigPath);
 	::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", DEFAULT_GAMMA, lpConfigPath);
-	
+
 	::GlobalFree(lpConfigPath);
 }
 
@@ -252,7 +252,7 @@ void SaveConfig(void)
 {
 	// プログラム(実行ファイル)のあるフォルダに設定を保存します
 	LPTSTR lpConfigPath = ::GetConfigPath();
-	
+
 	// lightup keyconfigs
 	::WritePrivateProfileInt(L"KeyBind", L"lightUpKey", ::g_lightUpKeyInfo.key, lpConfigPath);
 	::WritePrivateProfileInt(L"KeyBind", L"lightUpCtrlKey", ::g_lightUpKeyInfo.ctrlKey, lpConfigPath);
@@ -280,9 +280,9 @@ void SaveConfig(void)
 }
 
 int APIENTRY _tWinMain(HINSTANCE hInstance,
-                     HINSTANCE hPrevInstance,
-                     LPTSTR    lpCmdLine,
-                     int       nCmdShow)
+	HINSTANCE hPrevInstance,
+	LPTSTR    lpCmdLine,
+	int       nCmdShow)
 {
 	// メモリリークの検出機能を有効化します
 	// 対象となるのはmallocなどの基本的な関数だけで、外部のglobalallocなどは対象ではないことに留意
@@ -299,7 +299,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	LPTSTR *lplpszArgs;
 
 	lplpszArgs = CommandLineToArgvW(GetCommandLine(), &nArgs);
-	
+
 	if( nArgs == 1 ){
 		;
 	}else{
@@ -394,7 +394,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_GANMACHANGER);
 	wcex.lpszClassName	= szWindowClass;
 	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-	
+
 	return RegisterClassEx(&wcex);
 }
 
@@ -410,21 +410,21 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-   HWND hWnd;
+	HWND hWnd;
 
-   hInst = hInstance; // グローバル変数にインスタンス処理を格納します。
+	hInst = hInstance; // グローバル変数にインスタンス処理を格納します。
 
-   hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
+	hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
-   if (!hWnd)
-   {
-      return FALSE;
-   }
+	if (!hWnd)
+	{
+		return FALSE;
+	}
 
-   // ガンマの変更テスト
-   g_test = ::GetDC(hWnd);
-   
+	// ガンマの変更テスト
+	g_test = ::GetDC(hWnd);
+
 	// 構造体メンバの設定
 	nid.cbSize           = sizeof( NOTIFYICONDATA );
 	nid.uFlags           = (NIF_ICON|NIF_MESSAGE|NIF_TIP);
@@ -451,17 +451,17 @@ INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	BOOL result = false;
 	double level = 0;
 	int delta = 0;
-	
+
 	switch( msg ){
 	case WM_HSCROLL:
 		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GAMMA) ){
 			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
 			g_gamma = pos * MAX_GAMMA / SLIDER_SIZE;
 			g_gammaR = g_gammaG = g_gammaB = g_gamma;
-			
+
 			// 各モニタのガンマを意識したまま全体のガンマ設定をする
 			gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
-			
+
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
@@ -590,7 +590,7 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
-			
+
 		::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(monitor->level / (MAX_GAMMA / SLIDER_SIZE)));
 		::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(monitor->r / (MAX_GAMMA / SLIDER_SIZE)));
 		::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
@@ -621,7 +621,7 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
-			
+
 			// gamma -> slider
 			::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(monitor->level / (MAX_GAMMA / SLIDER_SIZE)));
 			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(monitor->r / (MAX_GAMMA / SLIDER_SIZE)));
@@ -636,7 +636,7 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		case IDDEFAULT:
 			// 指定されたインデックスのモニタをデフォルトのガンマ設定に戻す
 			gammaController.resetMonitor(::g_hMonitorTargetIndex);
-			
+
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
@@ -677,7 +677,7 @@ BOOL stopOrResume(HWND hWnd)
 		RestartHook();
 		HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE);
 		nid.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_GANMACHANGER));
-	
+
 		Shell_NotifyIcon(NIM_MODIFY, &nid);
 	}
 	return bStopedFlag;
@@ -699,8 +699,8 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
 			PostMessage(g_hKeyConfigDlg,WM_KEYUP,wp,lp);
 			return TRUE;
 		}
-    }
-    return CallNextHookEx(g_hKeyConfigHook,nCode,wp,lp);
+	}
+	return CallNextHookEx(g_hKeyConfigHook,nCode,wp,lp);
 }
 
 void SetCurrentKeyConfigToGUI(HWND hWnd)
@@ -748,7 +748,7 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
 		::SetWindowTopMost(hDlg); // ウインドウを最前面にします
 		::SetCurrentKeyConfigToGUI(hDlg); // 現在のキー設定をGUI上に反映させます
-		
+
 		// 一時格納用バッファを初期化します
 		nextKeyInfo = g_lightUpKeyInfo;
 		prevKeyInfo = g_lightDownKeyInfo;
@@ -824,7 +824,7 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		switch( LOWORD( wp ) ){
 		case IDOK:       // 適用ボタンが選択された
 			::StopHook();
-			
+
 			::g_lightUpKeyInfo = nextKeyInfo;
 			::g_lightDownKeyInfo = prevKeyInfo;
 			::g_lightResetKeyInfo = resetKeyInfo;
@@ -948,7 +948,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			hMenu = LoadMenu(NULL, MAKEINTRESOURCE(IDR_MENU));
 			hSubMenu = GetSubMenu(hMenu, 0);
-	
+
 			// 現在の選択状態をタスクバーに表示
 			if(bStopedFlag){
 				CheckMenuItem(hSubMenu, IDM_STOP, MF_BYCOMMAND | MF_CHECKED);
@@ -966,7 +966,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				mii.hSubMenu = hView;
 				mii.dwTypeData = L"モニタ別調節";
 				InsertMenuItem(hSubMenu, 0, TRUE, &mii);
-			
+
 				for(int i=0; i<gammaController.monitorGetCount(); i++){
 					mii.fMask = MIIM_FTYPE | MIIM_STRING | MIIM_ID;
 					mii.dwTypeData = gammaController.monitorGet(i)->monitorName;
@@ -1006,7 +1006,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			g_gammaR = g_gammaG = g_gammaB = g_gamma = DEFAULT_GAMMA;
 			gammaController.reset();
 			break;
-			
+
 		case IDM_STOP:
 			stopOrResume(hWnd);
 			break;
