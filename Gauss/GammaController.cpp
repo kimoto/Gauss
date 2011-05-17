@@ -35,7 +35,7 @@ bool GammaController::setMonitorGamma(HDC hdc, double gamma)
 
 bool GammaController::reset()
 {
-	m_gamma = DEFAULT_GAMMA;
+	this->m_gamma = DEFAULT_GAMMA;
 
 	for(int i=0; i<this->monitorGetCount(); i++){
 		this->resetMonitor(i);

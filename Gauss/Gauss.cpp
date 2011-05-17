@@ -251,6 +251,10 @@ void LoadConfig(void)
 	::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", DEFAULT_GAMMA, lpConfigPath);
 	::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", DEFAULT_GAMMA, lpConfigPath);
 
+	// 起動時はガンマリセットする
+	// 前回終了時のガンマ設定に強制変更
+	gammaController.setGamma(g_gammaR, g_gammaG, g_gammaB);
+
 	::GlobalFree(lpConfigPath);
 }
 
@@ -319,23 +323,29 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 				// gamma指定があったらそのガンマに設定する
 				if(wcscmp(lpOpt, L"-gamma") == 0){
-					// resetでリセットzzzz
+					// resetでリセット
 					if(wcscmp(lpStr, L"reset") == 0 || wcscmp(lpStr, L"default") == 0){
 						g_gamma = DEFAULT_GAMMA;
-						gammaController.reset();
+						//gammaController.reset();
+						gammaController.setGamma(DEFAULT_GAMMA);
 					}else{
 						g_gamma = ::wcstod(lpStr, &lpEnd);
 						if(g_gamma == 0 && lpStr == lpEnd){
-							ErrorMessageBox(L"Format Error");
+							ErrorMessageBox(L"Format Error (1): ガンマ値が設定されていません");
 							exit(-1);
 						}
 						gammaController.setGamma(g_gamma);
+						//::ErrorMessageBox(L"ガンマをセットしました: %f", g_gamma);
 					}
 				}
 			}
 		}else{
+			::ErrorMessageBox(L"Format Error (2): 引数の数の問題");
 			exit(-1);
 		}
+
+		// コマンドライン,ショートカットからの実行時は常駐モードへ移行しない
+		//exit(0);
 	}
 
 	LocalFree(lplpszArgs);
