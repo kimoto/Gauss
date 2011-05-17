@@ -147,9 +147,9 @@
     <None Include="taiyou_stop.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\KeyHook\KeyHook\KeyHook.h" />
     <ClInclude Include="GammaController.h" />
     <ClInclude Include="Gauss.h" />
+    <ClInclude Include="KeyHook.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />

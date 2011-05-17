@@ -24,8 +24,13 @@
 
 #define SLIDER_GETPOS(lp) (::SendMessage((HWND)lp, TBM_GETPOS, 0, 0))
 
-#define DLLIMPORT extern "C" __declspec(dllimport)
-#define DLLEXPORT extern "C" __declspec(dllimport)
+#ifndef DLLIMPORT
+	#define DLLIMPORT __declspec(dllimport)
+#endif
+
+#ifndef DLLEXPORT
+	#define DLLEXPORT __declspec(dllexport)
+#endif
 
 void trace(LPCTSTR format, ...);
 void FillRectBrush(HDC hdc, int x, int y, int width, int height, COLORREF color);

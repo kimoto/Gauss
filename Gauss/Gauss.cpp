@@ -58,6 +58,10 @@
 // タスクトレイのマウスメッセージの定数
 #define WM_TASKTRAY  (WM_APP + 1)
 
+#define WM_GAMMA_UP (WM_USER_MESSAGE + 1)
+#define WM_GAMMA_DOWN (WM_USER_MESSAGE + 2)
+#define WM_GAMMA_RESET (WM_USER_MESSAGE + 3)
+
 HINSTANCE hInst;								// 現在のインターフェイス
 TCHAR szTitle[MAX_LOADSTRING];					// タイトル バーのテキスト
 TCHAR szWindowClass[MAX_LOADSTRING];			// メイン ウィンドウ クラス名
@@ -70,7 +74,6 @@ double g_gamma = 1.0;
 double g_gammaR = 1.0;
 double g_gammaG = 1.0;
 double g_gammaB = 1.0;
-
 int g_hMonitorTargetIndex;
 
 HWND g_hDlg;
@@ -78,13 +81,11 @@ HWND g_hGammaDlg;
 HWND g_hMonitorGammaDlg;
 HWND g_hKeyConfigDlg;
 
-int g_lightUpKey = VK_PRIOR;
-int g_lightDownKey = VK_NEXT;
-int g_lightResetKey = VK_HOME;
-int g_lightOptKey = VK_CONTROL;
+KEYINFO g_lightUpKeyInfo = {0};
+KEYINFO g_lightDownKeyInfo = {0};
+KEYINFO g_lightResetKeyInfo = {0};
 
 HHOOK g_hKeyConfigHook = NULL;
-
 GammaController gammaController; // gamma制御用の関数まとめたクラス
 
 HDC g_test = (HDC)INVALID_HANDLE_VALUE;
@@ -94,6 +95,50 @@ ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
+
+// KEYINFO構造体を文字列表現にします
+LPTSTR GetKeyInfoString(KEYINFO *keyInfo)
+{
+	LPTSTR alt, ctrl, shift, key;
+	alt = ctrl = shift = key = NULL;
+
+	if(keyInfo->altKey != KEY_NOT_SET)
+		alt		= ::GetKeyNameTextEx(keyInfo->altKey);
+	if(keyInfo->ctrlKey != KEY_NOT_SET)
+		ctrl	= ::GetKeyNameTextEx(keyInfo->ctrlKey);
+	if(keyInfo->shiftKey != KEY_NOT_SET)
+		shift	= ::GetKeyNameTextEx(keyInfo->shiftKey);
+	if(keyInfo->key != KEY_NOT_SET)
+		key		= ::GetKeyNameTextEx(keyInfo->key);
+	
+	LPTSTR buffer = NULL;
+	if(alt == NULL && ctrl == NULL && shift == NULL && key == NULL){
+		buffer = ::sprintf_alloc(L"");
+	}else if(alt == NULL && ctrl == NULL && shift != NULL && key != NULL){
+		buffer = ::sprintf_alloc(L"%s + %s", shift, key);
+	}else if(alt == NULL && ctrl != NULL && shift == NULL && key != NULL){
+		buffer = ::sprintf_alloc(L"%s + %s", ctrl, key);
+	}else if(alt != NULL && ctrl == NULL && shift == NULL && key != NULL){
+		buffer = ::sprintf_alloc(L"%s + %s", alt, key);
+	}else if(alt == NULL && ctrl != NULL && shift != NULL && key != NULL){
+		buffer = ::sprintf_alloc(L"%s + %s + %s", ctrl, shift, key);
+	}else if(alt != NULL && ctrl == NULL && shift != NULL && key != NULL){
+		buffer = ::sprintf_alloc(L"%s + %s + %s", alt, shift, key);
+	}else if(alt != NULL && ctrl != NULL && shift == NULL && key != NULL){
+		buffer = ::sprintf_alloc(L"%s + %s + %s", ctrl, alt, key);
+	}else if(alt != NULL && ctrl != NULL && shift != NULL && key != NULL){
+		buffer = ::sprintf_alloc(L"%s + %s + %s + %s", ctrl, alt, shift, key);
+	}else{
+		buffer = ::sprintf_alloc(L"undef!");
+	}
+	
+	::GlobalFree(alt);
+	::GlobalFree(ctrl);
+	::GlobalFree(shift);
+	::GlobalFree(key);
+
+	return buffer;
+}
 
 BOOL CreateDesktopShortcutForGamma(double gamma)
 {
@@ -170,10 +215,28 @@ void LoadConfig(void)
 {
 	LPTSTR lpConfigPath = ::GetConfigPath();
 	
-	::g_lightUpKey = ::GetPrivateProfileInt(L"KeyBind", L"lightUpKey", VK_PRIOR, lpConfigPath);
-	::g_lightDownKey = ::GetPrivateProfileInt(L"KeyBind", L"lightDownKey", VK_NEXT, lpConfigPath);
-	::g_lightResetKey = ::GetPrivateProfileInt(L"KeyBind", L"lightResetKey", VK_HOME, lpConfigPath);
-	::g_lightOptKey = ::GetPrivateProfileInt(L"KeyBind", L"lightOptKey", VK_CONTROL, lpConfigPath);
+	// clear keyinfo
+	::ClearKeyInfo(&g_lightUpKeyInfo);
+	::ClearKeyInfo(&g_lightDownKeyInfo);
+	::ClearKeyInfo(&g_lightResetKeyInfo);
+
+	// lightup keyconfig
+	::g_lightUpKeyInfo.key		= ::GetPrivateProfileInt(L"KeyBind", L"lightUpKey", ::g_lightUpKeyInfo.key, lpConfigPath);
+	::g_lightUpKeyInfo.ctrlKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightUpCtrlKey", ::g_lightUpKeyInfo.ctrlKey, lpConfigPath);
+	::g_lightUpKeyInfo.shiftKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightUpShiftKey", ::g_lightUpKeyInfo.shiftKey, lpConfigPath);
+	::g_lightUpKeyInfo.altKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightUpAltKey", ::g_lightUpKeyInfo.altKey, lpConfigPath);
+
+	// lightdown keyconfig
+	::g_lightDownKeyInfo.key		= ::GetPrivateProfileInt(L"KeyBind", L"lightDownKey", ::g_lightDownKeyInfo.key, lpConfigPath);
+	::g_lightDownKeyInfo.ctrlKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightDownCtrlKey", ::g_lightDownKeyInfo.ctrlKey, lpConfigPath);
+	::g_lightDownKeyInfo.shiftKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightDownShiftKey", ::g_lightDownKeyInfo.shiftKey, lpConfigPath);
+	::g_lightDownKeyInfo.altKey		= ::GetPrivateProfileInt(L"KeyBind", L"lightDownAltKey", ::g_lightDownKeyInfo.altKey, lpConfigPath);
+
+	// lightreset keyconfig
+	::g_lightResetKeyInfo.key		= ::GetPrivateProfileInt(L"KeyBind", L"lightResetKey", ::g_lightResetKeyInfo.key, lpConfigPath);
+	::g_lightResetKeyInfo.ctrlKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightResetCtrlKey", ::g_lightResetKeyInfo.ctrlKey, lpConfigPath);
+	::g_lightResetKeyInfo.shiftKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightResetShiftKey", ::g_lightResetKeyInfo.shiftKey, lpConfigPath);
+	::g_lightResetKeyInfo.altKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightResetAltKey", ::g_lightResetKeyInfo.altKey, lpConfigPath);
 
 	::g_gamma = ::GetPrivateProfileDouble(L"Gamma", L"gamma", DEFAULT_GAMMA, lpConfigPath);
 	::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", DEFAULT_GAMMA, lpConfigPath);
@@ -188,10 +251,23 @@ void SaveConfig(void)
 	// プログラム(実行ファイル)のあるフォルダに設定を保存します
 	LPTSTR lpConfigPath = ::GetConfigPath();
 	
-	::WritePrivateProfileInt(L"KeyBind", L"lightUpKey", g_lightUpKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightDownKey", g_lightDownKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightResetKey", g_lightResetKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightOptKey", g_lightOptKey, lpConfigPath);
+	// lightup keyconfigs
+	::WritePrivateProfileInt(L"KeyBind", L"lightUpKey", ::g_lightUpKeyInfo.key, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightUpCtrlKey", ::g_lightUpKeyInfo.ctrlKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightUpShiftKey", ::g_lightUpKeyInfo.shiftKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightUpAltKey", ::g_lightUpKeyInfo.altKey, lpConfigPath);
+
+	// lightdown keyconfig
+	::WritePrivateProfileInt(L"KeyBind", L"lightDownKey", ::g_lightDownKeyInfo.key, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightDownCtrlKey", ::g_lightDownKeyInfo.ctrlKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightDownShiftKey", ::g_lightDownKeyInfo.shiftKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightDownAltKey", ::g_lightDownKeyInfo.altKey, lpConfigPath);
+
+	// lightreset keyconfig
+	::WritePrivateProfileInt(L"KeyBind", L"lightResetKey", ::g_lightResetKeyInfo.key, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightResetCtrlKey", ::g_lightResetKeyInfo.ctrlKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightResetShiftKey", ::g_lightResetKeyInfo.shiftKey, lpConfigPath);
+	::WritePrivateProfileInt(L"KeyBind", L"lightResetAltKey", ::g_lightResetKeyInfo.altKey, lpConfigPath);
 
 	::WritePrivateProfileDouble(L"Gamma", L"gamma", ::g_gamma, lpConfigPath);
 	::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);
@@ -627,9 +703,24 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
 
 void SetCurrentKeyConfigToGUI(HWND hWnd)
 {
-	LPTSTR up = ::GetKeyConfigString(g_lightUpKey, g_lightOptKey);
-	LPTSTR down = ::GetKeyConfigString(g_lightDownKey, g_lightOptKey);
-	LPTSTR reset = ::GetKeyConfigString(g_lightResetKey, g_lightOptKey);
+	LPTSTR up		= ::GetKeyInfoString(&g_lightUpKeyInfo);
+	LPTSTR down		= ::GetKeyInfoString(&g_lightDownKeyInfo);
+	LPTSTR reset	= ::GetKeyInfoString(&g_lightResetKeyInfo);
+
+	::SetDlgItemText(hWnd, IDC_EDIT_KEYBIND_LIGHTUP, up);
+	::SetDlgItemText(hWnd, IDC_EDIT_KEYBIND_LIGHTDOWN, down);
+	::SetDlgItemText(hWnd, IDC_EDIT_KEYBIND_LIGHTRESET, reset);
+
+	::GlobalFree(up);
+	::GlobalFree(down);
+	::GlobalFree(reset);
+}
+
+void SetCurrentKeyConfigToGUI(HWND hWnd, KEYINFO *kup, KEYINFO *kdown, KEYINFO *kreset)
+{
+	LPTSTR up		= ::GetKeyInfoString(kup);
+	LPTSTR down		= ::GetKeyInfoString(kdown);
+	LPTSTR reset	= ::GetKeyInfoString(kreset);
 
 	::SetDlgItemText(hWnd, IDC_EDIT_KEYBIND_LIGHTUP, up);
 	::SetDlgItemText(hWnd, IDC_EDIT_KEYBIND_LIGHTDOWN, down);
@@ -644,18 +735,24 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	static UINT targetID = -1;
 	BYTE keyTbl[256];
-	static int prevKey, nextKey, resetKey, optKey = 0;	// 一時的なキー設定に利用します、キャンセルしたら元通りになるようにするため
+	//static int prevKey, nextKey, resetKey, optKey = 0;	// 一時的なキー設定に利用します、キャンセルしたら元通りになるようにするため
 	LPTSTR lpKeyConfigBuffer = NULL;
+	int optKey = 0;
+
+	// 一時格納用バッファ
+	static KEYINFO prevKeyInfo = {0};
+	static KEYINFO nextKeyInfo = {0};
+	static KEYINFO resetKeyInfo = {0};
 
 	switch( msg ){
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
 		::SetWindowTopMost(hDlg); // ウインドウを最前面にします
-		::SetCurrentKeyConfigToGUI(hDlg);
-
-		nextKey = g_lightUpKey;
-		prevKey = g_lightDownKey;
-		resetKey = g_lightResetKey;
-		optKey = g_lightOptKey;
+		::SetCurrentKeyConfigToGUI(hDlg); // 現在のキー設定をGUI上に反映させます
+		
+		// 一時格納用バッファを初期化します
+		nextKeyInfo = g_lightUpKeyInfo;
+		prevKeyInfo = g_lightDownKeyInfo;
+		resetKeyInfo = g_lightResetKeyInfo;
 
 		// ウインドウのタイトルを規定のものに設定します
 		::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
@@ -683,13 +780,46 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		lpKeyConfigBuffer = ::GetKeyConfigString(wp, optKey);
 		::SetDlgItemText(hDlg, targetID, lpKeyConfigBuffer);
 		::GlobalFree(lpKeyConfigBuffer);
-		
+
 		if(targetID == IDC_EDIT_KEYBIND_LIGHTUP){
-			nextKey = wp;
+			nextKeyInfo.key = wp;
+			nextKeyInfo.altKey = nextKeyInfo.ctrlKey = nextKeyInfo.shiftKey = KEY_NOT_SET;
+
+			if(optKey == VK_MENU)
+				nextKeyInfo.altKey = optKey;
+			if(optKey == VK_CONTROL)
+				nextKeyInfo.ctrlKey = optKey;
+			if(optKey == VK_SHIFT)
+				nextKeyInfo.shiftKey = optKey;
+
+			nextKeyInfo.message = WM_GAMMA_UP;
+
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTDOWN){
-			prevKey = wp;
+			prevKeyInfo.key = wp;
+			prevKeyInfo.altKey = prevKeyInfo.ctrlKey = prevKeyInfo.shiftKey = KEY_NOT_SET;
+
+			if(optKey == VK_MENU)
+				prevKeyInfo.altKey = optKey;
+			if(optKey == VK_CONTROL)
+				prevKeyInfo.ctrlKey = optKey;
+			if(optKey == VK_SHIFT)
+				prevKeyInfo.shiftKey = optKey;
+
+			prevKeyInfo.message = WM_GAMMA_DOWN;
+
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTRESET){
-			resetKey = wp;
+			resetKeyInfo.key = wp;
+			resetKeyInfo.altKey = resetKeyInfo.ctrlKey = resetKeyInfo.shiftKey = KEY_NOT_SET;
+
+			if(optKey == VK_MENU)
+				resetKeyInfo.altKey = optKey;
+			if(optKey == VK_CONTROL)
+				resetKeyInfo.ctrlKey = optKey;
+			if(optKey == VK_SHIFT)
+				resetKeyInfo.shiftKey = optKey;
+
+			resetKeyInfo.message = WM_GAMMA_RESET;
+
 		}
 		return TRUE;
 
@@ -719,12 +849,15 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		switch( LOWORD( wp ) ){
 		case IDOK:       // 適用ボタンが選択された
 			::StopHook();
-			::StartKeyHook(prevKey, nextKey, resetKey, optKey);
+			
+			::g_lightUpKeyInfo = nextKeyInfo;
+			::g_lightDownKeyInfo = prevKeyInfo;
+			::g_lightResetKeyInfo = resetKeyInfo;
 
-			g_lightUpKey = nextKey;
-			g_lightDownKey = prevKey;
-			g_lightResetKey = resetKey;
-			g_lightOptKey = optKey;
+			RegistKey(g_lightUpKeyInfo, WM_GAMMA_UP);
+			RegistKey(g_lightDownKeyInfo, WM_GAMMA_DOWN);
+			RegistKey(g_lightResetKeyInfo, WM_GAMMA_RESET);
+			::StartHook();
 
 			EndDialog(g_hKeyConfigDlg, LOWORD(wp));
 			g_hKeyConfigDlg = NULL;
@@ -756,13 +889,23 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SetWindowText(hDlg, DLG_KEYCONFIG_ASK);
 			break;
 		case IDDEFAULT: // デフォルトボタンが押されたとき
-			nextKey = g_lightUpKey = VK_PRIOR;
-			prevKey = g_lightDownKey = VK_NEXT;
-			resetKey = g_lightResetKey = VK_HOME;
-			optKey = g_lightOptKey = VK_CONTROL;
+			nextKeyInfo.key = VK_PRIOR;
+			nextKeyInfo.ctrlKey = VK_CONTROL;
+			nextKeyInfo.altKey = nextKeyInfo.shiftKey = KEY_NOT_SET;
+			nextKeyInfo.message = WM_GAMMA_UP;
+
+			prevKeyInfo.key = VK_NEXT;
+			prevKeyInfo.ctrlKey = VK_CONTROL;
+			prevKeyInfo.altKey = prevKeyInfo.shiftKey = KEY_NOT_SET;
+			prevKeyInfo.message = WM_GAMMA_DOWN;
+
+			resetKeyInfo.key = VK_HOME;
+			resetKeyInfo.ctrlKey = VK_CONTROL;
+			resetKeyInfo.altKey = resetKeyInfo.shiftKey = KEY_NOT_SET;
+			resetKeyInfo.message = WM_GAMMA_RESET;
 
 			// 現在のキー設定をGUIに反映します
-			SetCurrentKeyConfigToGUI(hDlg);
+			SetCurrentKeyConfigToGUI(hDlg, &nextKeyInfo, &prevKeyInfo, &resetKeyInfo);
 			break;
 		}
 		return TRUE;
@@ -802,7 +945,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		RecognizeMonitors();
 
 		SetWindowHandle(hWnd);
-		StartKeyHook(g_lightUpKey, g_lightDownKey, g_lightResetKey, g_lightOptKey);
+
+		// 一番最初のキーフック
+		// デフォルト値で起動する
+		::RegistKey(::g_lightUpKeyInfo, WM_GAMMA_UP);
+		::RegistKey(::g_lightDownKeyInfo, WM_GAMMA_DOWN);
+		::RegistKey(::g_lightResetKeyInfo, WM_GAMMA_RESET);
+		::StartHook();
 
 		// taskbar event
 		wm_taskbarCreated = RegisterWindowMessage(TEXT("TaskbarCreated"));
@@ -904,26 +1053,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
-	case WM_USER_MESSAGE:
-		// DLLによるグローバルキーフックで、キー入力を検知したときに呼ばれます
-		if(g_lightOptKey == NULL){
-			if(wParam == g_lightUpKey){
-				gammaController.increment();
-			}else if(wParam == g_lightDownKey){
-				gammaController.decrement();
-			}else if(wParam == g_lightResetKey){
-				gammaController.resetMonitorDifference();
-			}
-		}else{
-			if(GetAsyncKeyState(g_lightOptKey)){
-				if(wParam == g_lightUpKey){
-					gammaController.increment();
-				}else if(wParam == g_lightDownKey){
-					gammaController.decrement();
-				}else if(wParam == g_lightResetKey){
-					gammaController.resetMonitorDifference();
-				}
-			}
+#define IF_KEY_PRESS(lp) ((lParam & (1 << 31)) == 0)
+	case WM_GAMMA_UP:
+		if( IF_KEY_PRESS(lParam) ){
+			trace(L"gamma up\n");
+			gammaController.increment();
+		}
+		break;
+	case WM_GAMMA_DOWN:
+		if( IF_KEY_PRESS(lParam) ){
+			trace(L"gamma down\n");
+			gammaController.decrement();
+		}
+		break;
+	case WM_GAMMA_RESET:
+		if( IF_KEY_PRESS(lParam) ){
+			trace(L"gamma reset\n");
+			gammaController.reset();
 		}
 		break;
 	case WM_CLOSE:

@@ -48,7 +48,7 @@
     <ClInclude Include="GammaController.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\KeyHook\KeyHook\KeyHook.h">
+    <ClInclude Include="KeyHook.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
