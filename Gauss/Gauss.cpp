@@ -114,6 +114,8 @@ LPTSTR GetKeyInfoString(KEYINFO *keyInfo)
 	LPTSTR buffer = NULL;
 	if(alt == NULL && ctrl == NULL && shift == NULL && key == NULL){
 		buffer = ::sprintf_alloc(L"");
+	}else if(alt == NULL && ctrl == NULL && shift == NULL && key != NULL){
+		buffer = ::sprintf_alloc(L"%s", key);
 	}else if(alt == NULL && ctrl == NULL && shift != NULL && key != NULL){
 		buffer = ::sprintf_alloc(L"%s + %s", shift, key);
 	}else if(alt == NULL && ctrl != NULL && shift == NULL && key != NULL){
@@ -130,13 +132,13 @@ LPTSTR GetKeyInfoString(KEYINFO *keyInfo)
 		buffer = ::sprintf_alloc(L"%s + %s + %s + %s", ctrl, alt, shift, key);
 	}else{
 		buffer = ::sprintf_alloc(L"undef!");
+		::ErrorMessageBox(L"キー設定に失敗しました");
 	}
 	
 	::GlobalFree(alt);
 	::GlobalFree(ctrl);
 	::GlobalFree(shift);
 	::GlobalFree(key);
-
 	return buffer;
 }
 
@@ -735,8 +737,6 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	static UINT targetID = -1;
 	BYTE keyTbl[256];
-	//static int prevKey, nextKey, resetKey, optKey = 0;	// 一時的なキー設定に利用します、キャンセルしたら元通りになるようにするため
-	LPTSTR lpKeyConfigBuffer = NULL;
 	int optKey = 0;
 
 	// 一時格納用バッファ
@@ -765,61 +765,36 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		}
 
 		// 入力された補助キーを判断して代入
-		optKey = NULL;
+		KEYINFO tmp;
+		::ClearKeyInfo(&tmp);
 		if( keyTbl[VK_CONTROL] & 0x80 ){
-			optKey = VK_CONTROL;
-		}else if( keyTbl[VK_SHIFT] & 0x80 ){
-			optKey = VK_SHIFT;
-		}else if( keyTbl[VK_MENU] & 0x80 ){
-			optKey = VK_MENU;
-		}else{
-			optKey = NULL; // 何も押されてないときはNULL
+			// wpと一緒だったらwp使えばいいので入力しません
+			if(wp != VK_CONTROL)
+				tmp.ctrlKey = VK_CONTROL;
 		}
+		if( keyTbl[VK_SHIFT] & 0x80 ){
+			if(wp != VK_SHIFT)
+				tmp.shiftKey = VK_SHIFT;
+		}
+		if( keyTbl[VK_MENU] & 0x80 ){
+			if(wp != VK_MENU)
+				tmp.altKey = VK_MENU;
+		}
+		tmp.key = wp;
 
 		// 入力されたキーをUI上に反映させます
-		lpKeyConfigBuffer = ::GetKeyConfigString(wp, optKey);
-		::SetDlgItemText(hDlg, targetID, lpKeyConfigBuffer);
-		::GlobalFree(lpKeyConfigBuffer);
+		{
+			LPTSTR lpKeyConfigBuffer = ::GetKeyInfoString(&tmp);
+			::SetDlgItemText(hDlg, targetID, lpKeyConfigBuffer);
+			::GlobalFree(lpKeyConfigBuffer);
+		}
 
 		if(targetID == IDC_EDIT_KEYBIND_LIGHTUP){
-			nextKeyInfo.key = wp;
-			nextKeyInfo.altKey = nextKeyInfo.ctrlKey = nextKeyInfo.shiftKey = KEY_NOT_SET;
-
-			if(optKey == VK_MENU)
-				nextKeyInfo.altKey = optKey;
-			if(optKey == VK_CONTROL)
-				nextKeyInfo.ctrlKey = optKey;
-			if(optKey == VK_SHIFT)
-				nextKeyInfo.shiftKey = optKey;
-
-			nextKeyInfo.message = WM_GAMMA_UP;
-
+			nextKeyInfo = tmp;
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTDOWN){
-			prevKeyInfo.key = wp;
-			prevKeyInfo.altKey = prevKeyInfo.ctrlKey = prevKeyInfo.shiftKey = KEY_NOT_SET;
-
-			if(optKey == VK_MENU)
-				prevKeyInfo.altKey = optKey;
-			if(optKey == VK_CONTROL)
-				prevKeyInfo.ctrlKey = optKey;
-			if(optKey == VK_SHIFT)
-				prevKeyInfo.shiftKey = optKey;
-
-			prevKeyInfo.message = WM_GAMMA_DOWN;
-
+			prevKeyInfo = tmp;
 		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTRESET){
-			resetKeyInfo.key = wp;
-			resetKeyInfo.altKey = resetKeyInfo.ctrlKey = resetKeyInfo.shiftKey = KEY_NOT_SET;
-
-			if(optKey == VK_MENU)
-				resetKeyInfo.altKey = optKey;
-			if(optKey == VK_CONTROL)
-				resetKeyInfo.ctrlKey = optKey;
-			if(optKey == VK_SHIFT)
-				resetKeyInfo.shiftKey = optKey;
-
-			resetKeyInfo.message = WM_GAMMA_RESET;
-
+			resetKeyInfo = tmp;
 		}
 		return TRUE;
 
