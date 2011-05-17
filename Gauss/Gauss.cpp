@@ -44,7 +44,7 @@
 
 #define MAX_LOADSTRING 100
 #define WM_USER_MESSAGE (WM_USER+0x1000)
-#define SLIDER_SIZE 100
+#define SLIDER_SIZE ((int)((MAX_GAMMA - MIN_GAMMA) * 100)) // probablly 417
 
 #define DLG_KEYCONFIG_PROC_WINDOW_TITLE L"キー設定"
 #define DLG_KEYCONFIG_ASK L"キーを入力してください"
@@ -61,6 +61,14 @@
 #define WM_GAMMA_UP (WM_USER_MESSAGE + 1)
 #define WM_GAMMA_DOWN (WM_USER_MESSAGE + 2)
 #define WM_GAMMA_RESET (WM_USER_MESSAGE + 3)
+
+#define GAMMA_TO_SLIDER_POS(gamma) ((int)((gamma - MIN_GAMMA) * 100))
+#define SLIDER_POS_TO_GAMMA(pos) (pos / 100.0 + MIN_GAMMA)
+
+#define SLIDER_SETPOS(hwnd, id, value) (::SendDlgItemMessage(hwnd, id, TBM_SETPOS, TRUE, value))
+#define SLIDER_SETRANGE(hwnd, id, a, b) (::SendDlgItemMessage(hwnd, id, TBM_SETRANGE, TRUE, MAKELONG(a, b)))
+
+#define IF_KEY_PRESS(lp) ((lp & (1 << 31)) == 0)
 
 HINSTANCE hInst;								// 現在のインターフェイス
 TCHAR szTitle[MAX_LOADSTRING];					// タイトル バーのテキスト
@@ -87,8 +95,6 @@ KEYINFO g_lightResetKeyInfo = {0};
 
 HHOOK g_hKeyConfigHook = NULL;
 GammaController gammaController; // gamma制御用の関数まとめたクラス
-
-HDC g_test = (HDC)INVALID_HANDLE_VALUE;
 
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -421,10 +427,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	{
 		return FALSE;
 	}
-
-	// ガンマの変更テスト
-	g_test = ::GetDC(hWnd);
-
+	
 	// 構造体メンバの設定
 	nid.cbSize           = sizeof( NOTIFYICONDATA );
 	nid.uFlags           = (NIF_ICON|NIF_MESSAGE|NIF_TIP);
@@ -432,14 +435,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	nid.hIcon            = LoadIcon(hInst, MAKEINTRESOURCE(IDI_GANMACHANGER));          // アイコン・ハンドル
 	nid.uID              = ID_TRAYICON;    // アイコン識別子の定数
 	nid.uCallbackMessage = WM_TASKTRAY;    // 通知メッセージの定数
-
 	lstrcpy( nid.szTip, TASKTRAY_TOOLTIP_TEXT );  // チップヘルプの文字列
 
 	// アイコンの変更
 	if( !Shell_NotifyIcon( NIM_ADD, (PNOTIFYICONDATAW)&nid ) )
 		::ShowLastError();
 
-	//ShowWindow(hWnd, nCmdShow);
+	ShowWindow(hWnd, SW_HIDE); // ウインドウは非表示
 	UpdateWindow(hWnd);
 
 	return TRUE;
@@ -448,45 +450,39 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 // モニタ関係なく、すべてのデスクトップに対するガンマ変更プロシージャ
 INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
-	BOOL result = false;
-	double level = 0;
-	int delta = 0;
-
 	switch( msg ){
 	case WM_HSCROLL:
-		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GAMMA) ){
+		{
 			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_gamma = pos * MAX_GAMMA / SLIDER_SIZE;
-			g_gammaR = g_gammaG = g_gammaB = g_gamma;
+			if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GAMMA) ){
+				g_gamma = SLIDER_POS_TO_GAMMA(pos);
+				g_gammaR = g_gammaG = g_gammaB = g_gamma;
 
-			// 各モニタのガンマを意識したまま全体のガンマ設定をする
-			gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
+				// 各モニタのガンマを意識したまま全体のガンマ設定をする
+				gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
 
-			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (MAX_GAMMA / SLIDER_SIZE)));
-		}
-		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_RGAMMA) ){
-			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_gammaR = pos * MAX_GAMMA / SLIDER_SIZE;
-			gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
-		}
-		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GGAMMA) ){
-			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_gammaG = pos * MAX_GAMMA / SLIDER_SIZE;
-			gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
-		}
-		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_BGAMMA) ){
-			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-			g_gammaB = pos * MAX_GAMMA / SLIDER_SIZE;
-			gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
+				::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
+			
+				// 連動してR,G,Bそれぞれのスライダーも同じように
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(g_gammaR));
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(g_gammaG));
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(g_gammaB));
+			}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_RGAMMA) ){
+				g_gammaR = SLIDER_POS_TO_GAMMA(pos);
+				gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
+			}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GGAMMA) ){
+				g_gammaG = SLIDER_POS_TO_GAMMA(pos);
+				gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
+			}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_BGAMMA) ){
+				g_gammaB = SLIDER_POS_TO_GAMMA(pos);
+				gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
+			}
 		}
 		break;
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
@@ -495,10 +491,17 @@ INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
 
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_gamma / (MAX_GAMMA / SLIDER_SIZE)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (MAX_GAMMA / SLIDER_SIZE)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (MAX_GAMMA / SLIDER_SIZE)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (MAX_GAMMA / SLIDER_SIZE)));
+		// スライダーの範囲(0 - 417)
+		SLIDER_SETRANGE(hDlg, IDC_SLIDER_GAMMA, 0, SLIDER_SIZE);
+		SLIDER_SETRANGE(hDlg, IDC_SLIDER_RGAMMA, 0, SLIDER_SIZE);
+		SLIDER_SETRANGE(hDlg, IDC_SLIDER_GGAMMA, 0, SLIDER_SIZE);
+		SLIDER_SETRANGE(hDlg, IDC_SLIDER_BGAMMA, 0, SLIDER_SIZE);
+
+		// 現在の設定におけるカーソルの位置を設定する
+		SLIDER_SETPOS(hDlg, IDC_SLIDER_GAMMA, GAMMA_TO_SLIDER_POS(g_gamma));
+		SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(g_gammaR));
+		SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(g_gammaG));
+		SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(g_gammaB));
 
 		::SetWindowTopMost(hDlg); // 常に最前面に表示
 		return TRUE;
@@ -520,12 +523,11 @@ INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(g_gamma / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaR / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaG / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(g_gammaB / (MAX_GAMMA / SLIDER_SIZE)));
 
-			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, g_gamma);
+			SLIDER_SETPOS(hDlg, IDC_SLIDER_GAMMA, GAMMA_TO_SLIDER_POS(g_gamma));
+			SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(g_gammaR));
+			SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(g_gammaG));
+			SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(g_gammaB));
 			break;
 		case IDSHORTCUT: // ショートカット作成
 			CreateDesktopShortcutForGamma(g_gamma);
@@ -547,39 +549,36 @@ INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
 	static MonitorInfo *monitor = NULL;
-	BOOL result = false;
-	double level = 0;
-	int delta = 0;
-	int pos;
-	double gamma_value;
 
 	switch( msg ){
 	case WM_HSCROLL:
-		pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
-		gamma_value = (pos * MAX_GAMMA / SLIDER_SIZE);
+		{
+			int pos = SendMessage((HWND)lp, TBM_GETPOS, 0, 0);
+			double gamma_value = SLIDER_POS_TO_GAMMA(pos);
 
-		if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GAMMA) ){
-			// 全体のガンマ調整スライダーいじったとき
-			monitor->r = monitor->g = monitor->b = monitor->level = gamma_value;
+			if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GAMMA) ){
+				// 全体のガンマ調整スライダーいじったとき
+				monitor->r = monitor->g = monitor->b = monitor->level = gamma_value;
 
-			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(monitor->r / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
-		}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_RGAMMA) ){
-			monitor->r = gamma_value;
-			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
-		}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GGAMMA) ){
-			monitor->g = gamma_value;
-			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
-		}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_BGAMMA) ){
-			monitor->b = gamma_value;
-			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
+				::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(monitor->r));
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(monitor->g));
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(monitor->b));
+			}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_RGAMMA) ){
+				monitor->r = gamma_value;
+				::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
+			}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_GGAMMA) ){
+				monitor->g = gamma_value;
+				::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
+			}else if( (HWND)lp == GetDlgItem(hDlg, IDC_SLIDER_BGAMMA) ){
+				monitor->b = gamma_value;
+				::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
+			}
+			gammaController.setMonitorGammaIndex(::g_hMonitorTargetIndex, monitor->r, monitor->g, monitor->b, monitor->level);
 		}
-		gammaController.setMonitorGammaIndex(::g_hMonitorTargetIndex, monitor->r, monitor->g, monitor->b, monitor->level);
 		return TRUE;
 
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
@@ -591,10 +590,17 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
 		::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
 
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(monitor->level / (MAX_GAMMA / SLIDER_SIZE)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(monitor->r / (MAX_GAMMA / SLIDER_SIZE)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
-		::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
+		// スライダーの範囲(0 - 417)
+		SLIDER_SETRANGE(hDlg, IDC_SLIDER_GAMMA, 0, SLIDER_SIZE);
+		SLIDER_SETRANGE(hDlg, IDC_SLIDER_RGAMMA, 0, SLIDER_SIZE);
+		SLIDER_SETRANGE(hDlg, IDC_SLIDER_GGAMMA, 0, SLIDER_SIZE);
+		SLIDER_SETRANGE(hDlg, IDC_SLIDER_BGAMMA, 0, SLIDER_SIZE);
+
+		// 現在の値のセット
+		SLIDER_SETPOS(hDlg, IDC_SLIDER_GAMMA, GAMMA_TO_SLIDER_POS(monitor->level));
+		SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(monitor->r));
+		SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(monitor->g));
+		SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(monitor->b));
 
 		// ウインドウのタイトルをどのモニタかわかるようなものに
 		::SetWindowTextFormat(hDlg, DLG_MONITOR_GAMMA_WINDOW_TITLE_FORMAT, monitor->monitorName);
@@ -606,27 +612,29 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 	case WM_COMMAND:     // ダイアログボックス内の何かが選択されたとき
 		switch( LOWORD( wp ) ){
 		case IDOK:       // 適用ボタンが選択された
-			level = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_BRIGHTNESS_LEVEL);
+			{
+				double level = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_BRIGHTNESS_LEVEL);
 
-			if(level != monitor->level){
-				gammaController.setMonitorGammaIndex(::g_hMonitorTargetIndex, level);
-			}else{
-				monitor->r = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_EDIT_RGAMMA);
-				monitor->g = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_EDIT_GGAMMA);
-				monitor->b = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_EDIT_BGAMMA);
-				gammaController.setMonitorGammaIndex(g_hMonitorTargetIndex, monitor->r, monitor->g, monitor->b, monitor->level);
+				if(level != monitor->level){
+					gammaController.setMonitorGammaIndex(::g_hMonitorTargetIndex, level);
+				}else{
+					monitor->r = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_EDIT_RGAMMA);
+					monitor->g = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_EDIT_GGAMMA);
+					monitor->b = GetDlgItemDouble(g_hMonitorGammaDlg, IDC_EDIT_BGAMMA);
+					gammaController.setMonitorGammaIndex(g_hMonitorTargetIndex, monitor->r, monitor->g, monitor->b, monitor->level);
+				}
+
+				::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
+				::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
+
+				// gamma -> slider
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_GAMMA, GAMMA_TO_SLIDER_POS(monitor->level));
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(monitor->r));
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(monitor->g));
+				SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(monitor->b));
 			}
-
-			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
-			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
-
-			// gamma -> slider
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(monitor->level / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(monitor->r / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
 			break;
 		case IDCANCEL:   // 「キャンセル」ボタンが選択された
 			// ダイアログボックスを消す
@@ -641,10 +649,12 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, monitor->r);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, monitor->g);
 			::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, monitor->b);
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GAMMA, TBM_SETPOS, TRUE, (int)(monitor->level / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_RGAMMA, TBM_SETPOS, TRUE, (int)(monitor->r / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_GGAMMA, TBM_SETPOS, TRUE, (int)(monitor->g / (MAX_GAMMA / SLIDER_SIZE)));
-			::SendDlgItemMessage(hDlg, IDC_SLIDER_BGAMMA, TBM_SETPOS, TRUE, (int)(monitor->b / (MAX_GAMMA / SLIDER_SIZE)));
+
+			SLIDER_SETPOS(hDlg, IDC_SLIDER_GAMMA, GAMMA_TO_SLIDER_POS(monitor->level));
+			SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(monitor->r));
+			SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(monitor->g));
+			SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(monitor->b));
+
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
 			break;
 		case IDSHORTCUT: // ショートカット作成
@@ -692,7 +702,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wp, LPARAM lp)
 	if (nCode==HC_ACTION) {
 		//キーの遷移状態のビットをチェックして
 		//WM_KEYDOWNとWM_KEYUPをDialogに送信する
-		if ((lp & 0x80000000)==0) {
+		if ( IF_KEY_PRESS(lp) ) {
 			PostMessage(g_hKeyConfigDlg,WM_KEYDOWN,wp,lp);
 			return TRUE;
 		}else{
@@ -942,10 +952,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_RBUTTONDOWN:
 			SetForegroundWindow(hWnd);
 
-			// カーソルの現在位置を取得
-			POINT point;
-			::GetCursorPos(&point);
-
 			hMenu = LoadMenu(NULL, MAKEINTRESOURCE(IDR_MENU));
 			hSubMenu = GetSubMenu(hMenu, 0);
 
@@ -974,6 +980,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					InsertMenuItem(hView, i, TRUE, &mii);
 				}
 			}
+			
+			// カーソルの現在位置を取得
+			POINT point;
+			::GetCursorPos(&point);
 
 			TrackPopupMenu(hSubMenu, TPM_LEFTALIGN | TPM_RIGHTBUTTON, point.x, point.y, 0, hWnd, NULL);
 			PostMessage(hWnd, WM_NULL, 0, 0);
@@ -1028,7 +1038,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
-#define IF_KEY_PRESS(lp) ((lParam & (1 << 31)) == 0)
 	case WM_GAMMA_UP:
 		if( IF_KEY_PRESS(lParam) ){
 			trace(L"gamma up\n");
