@@ -242,8 +242,8 @@ void LoadConfig(void)
 	LPTSTR lpConfigPath = ::GetConfigPath();
 
 	// setup default key config
-	::QuickSetKeyInfo(&::g_lightUpKeyInfo, VK_CONTROL, VK_NEXT);
-	::QuickSetKeyInfo(&::g_lightDownKeyInfo, VK_CONTROL, VK_PRIOR);
+	::QuickSetKeyInfo(&::g_lightUpKeyInfo, VK_CONTROL, VK_PRIOR);
+	::QuickSetKeyInfo(&::g_lightDownKeyInfo, VK_CONTROL, VK_NEXT);
 	::QuickSetKeyInfo(&::g_lightResetKeyInfo, VK_CONTROL, VK_HOME);
 
 	// lightup keyconfig
