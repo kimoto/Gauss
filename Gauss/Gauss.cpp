@@ -219,14 +219,32 @@ LPTSTR GetConfigPath(LPTSTR fileName=L"config.ini")
 	}
 }
 
+void QuickSetKeyInfo(KEYINFO *info, int optKey, int key)
+{
+	// clear keyinfo
+	::ClearKeyInfo(info);
+
+	if(optKey == VK_CONTROL){
+		info->ctrlKey = VK_CONTROL;
+	}else if(optKey == VK_SHIFT){
+		info->shiftKey = VK_SHIFT;
+	}else if(optKey == VK_MENU){
+		info->altKey = VK_MENU;
+	}else{
+		::ErrorMessageBox(L"unknown optKey type");
+	}
+
+	info->key = key;
+}
+
 void LoadConfig(void)
 {
 	LPTSTR lpConfigPath = ::GetConfigPath();
 
-	// clear keyinfo
-	::ClearKeyInfo(&g_lightUpKeyInfo);
-	::ClearKeyInfo(&g_lightDownKeyInfo);
-	::ClearKeyInfo(&g_lightResetKeyInfo);
+	// setup default key config
+	::QuickSetKeyInfo(&::g_lightUpKeyInfo, VK_CONTROL, VK_NEXT);
+	::QuickSetKeyInfo(&::g_lightDownKeyInfo, VK_CONTROL, VK_PRIOR);
+	::QuickSetKeyInfo(&::g_lightResetKeyInfo, VK_CONTROL, VK_HOME);
 
 	// lightup keyconfig
 	::g_lightUpKeyInfo.key		= ::GetPrivateProfileInt(L"KeyBind", L"lightUpKey", ::g_lightUpKeyInfo.key, lpConfigPath);
@@ -885,20 +903,10 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SetWindowText(hDlg, DLG_KEYCONFIG_ASK);
 			break;
 		case IDDEFAULT: // デフォルトボタンが押されたとき
-			nextKeyInfo.key = VK_PRIOR;
-			nextKeyInfo.ctrlKey = VK_CONTROL;
-			nextKeyInfo.altKey = nextKeyInfo.shiftKey = KEY_NOT_SET;
-			nextKeyInfo.message = WM_GAMMA_UP;
-
-			prevKeyInfo.key = VK_NEXT;
-			prevKeyInfo.ctrlKey = VK_CONTROL;
-			prevKeyInfo.altKey = prevKeyInfo.shiftKey = KEY_NOT_SET;
-			prevKeyInfo.message = WM_GAMMA_DOWN;
-
-			resetKeyInfo.key = VK_HOME;
-			resetKeyInfo.ctrlKey = VK_CONTROL;
-			resetKeyInfo.altKey = resetKeyInfo.shiftKey = KEY_NOT_SET;
-			resetKeyInfo.message = WM_GAMMA_RESET;
+			// setup default key config
+			::QuickSetKeyInfo(&nextKeyInfo, VK_CONTROL, VK_PRIOR);
+			::QuickSetKeyInfo(&prevKeyInfo, VK_CONTROL, VK_NEXT);
+			::QuickSetKeyInfo(&resetKeyInfo, VK_CONTROL, VK_HOME);
 
 			// 現在のキー設定をGUIに反映します
 			SetCurrentKeyConfigToGUI(hDlg, &nextKeyInfo, &prevKeyInfo, &resetKeyInfo);
