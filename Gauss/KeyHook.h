@@ -12,11 +12,11 @@ typedef struct{
 }KEYINFO;
 
 #ifndef DLLIMPORT
-	#define DLLIMPORT __declspec(dllimport)
+	#define DLLIMPORT extern "C" __declspec(dllimport)
 #endif
 
 #ifndef DLLEXPORT
-	#define DLLEXPORT __declspec(dllexport)
+	#define DLLEXPORT extern "C" __declspec(dllexport)
 #endif
 
 DLLEXPORT BOOL StartHook(void);

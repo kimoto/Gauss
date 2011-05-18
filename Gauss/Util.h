@@ -25,11 +25,11 @@
 #define SLIDER_GETPOS(lp) (::SendMessage((HWND)lp, TBM_GETPOS, 0, 0))
 
 #ifndef DLLIMPORT
-	#define DLLIMPORT __declspec(dllimport)
+	#define DLLIMPORT extern "C" __declspec(dllimport)
 #endif
 
 #ifndef DLLEXPORT
-	#define DLLEXPORT __declspec(dllexport)
+	#define DLLEXPORT extern "C" __declspec(dllexport)
 #endif
 
 void trace(LPCTSTR format, ...);

@@ -446,7 +446,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	nid.uID              = ID_TRAYICON;    // アイコン識別子の定数
 	nid.uCallbackMessage = WM_TASKTRAY;    // 通知メッセージの定数
 	lstrcpy( nid.szTip, TASKTRAY_TOOLTIP_TEXT );  // チップヘルプの文字列
-
+	
 	// アイコンの変更
 	if( !Shell_NotifyIcon( NIM_ADD, (PNOTIFYICONDATAW)&nid ) )
 		::ShowLastError();
@@ -852,7 +852,8 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			RegistKey(g_lightUpKeyInfo, WM_GAMMA_UP);
 			RegistKey(g_lightDownKeyInfo, WM_GAMMA_DOWN);
 			RegistKey(g_lightResetKeyInfo, WM_GAMMA_RESET);
-			::StartHook();
+			if(!::StartHook())
+				::ShowLastError();
 
 			EndDialog(g_hKeyConfigDlg, LOWORD(wp));
 			g_hKeyConfigDlg = NULL;
@@ -946,7 +947,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		::RegistKey(::g_lightUpKeyInfo, WM_GAMMA_UP);
 		::RegistKey(::g_lightDownKeyInfo, WM_GAMMA_DOWN);
 		::RegistKey(::g_lightResetKeyInfo, WM_GAMMA_RESET);
-		::StartHook();
+		if(!::StartHook())
+			::ShowLastError();
+		::trace(L"starthook\n");
 
 		// taskbar event
 		wm_taskbarCreated = RegisterWindowMessage(TEXT("TaskbarCreated"));
