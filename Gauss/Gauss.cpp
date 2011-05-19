@@ -712,7 +712,11 @@ BOOL stopOrResume(HWND hWnd)
 		nid.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_GANMACHANGER_STOP));
 		Shell_NotifyIcon(NIM_MODIFY, &nid);
 	}else{
-		RestartHook();
+		RegistKey(::g_lightUpKeyInfo, WM_GAMMA_UP);
+		RegistKey(::g_lightDownKeyInfo, WM_GAMMA_DOWN);
+		RegistKey(::g_lightResetKeyInfo, WM_GAMMA_RESET);
+		::StartHook();
+
 		HINSTANCE hInstance = (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE);
 		nid.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_GANMACHANGER));
 
