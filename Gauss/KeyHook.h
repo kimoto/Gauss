@@ -1,15 +1,13 @@
+#pragma once
 #include <Windows.h>
+#include <tchar.h>
+#include <SDKDDKVer.h>
 
+// マクロ定義
 #define WM_USER_MESSAGE (WM_USER+0x1000)
 #define KEY_NOT_SET -1
-
-typedef struct{
-	int ctrlKey;	// CTRL
-	int shiftKey;	// SHIFT
-	int altKey;		// ALT
-	int key;		// a-zなど
-	int message;	// message
-}KEYINFO;
+#define REGIST_KEY_MAX 256
+#define unless(statement) if( !(statement) )
 
 #ifndef DLLIMPORT
 	#define DLLIMPORT extern "C" __declspec(dllimport)
@@ -19,6 +17,16 @@ typedef struct{
 	#define DLLEXPORT extern "C" __declspec(dllexport)
 #endif
 
+// 構造体定義
+typedef struct{
+	int ctrlKey;	// CTRL
+	int shiftKey;	// SHIFT
+	int altKey;		// ALT
+	int key;		// a-zなど
+	int message;	// message
+}KEYINFO;
+
+// 関数定義
 DLLEXPORT BOOL StartHook(void);
 DLLEXPORT BOOL SetWindowHandle(HWND hWnd);
 DLLEXPORT BOOL StopHook(void);

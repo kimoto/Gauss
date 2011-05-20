@@ -102,52 +102,6 @@ BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
-// KEYINFO構造体を文字列表現にします
-LPTSTR GetKeyInfoString(KEYINFO *keyInfo)
-{
-	LPTSTR alt, ctrl, shift, key;
-	alt = ctrl = shift = key = NULL;
-
-	if(keyInfo->altKey != KEY_NOT_SET)
-		alt		= ::GetKeyNameTextEx(keyInfo->altKey);
-	if(keyInfo->ctrlKey != KEY_NOT_SET)
-		ctrl	= ::GetKeyNameTextEx(keyInfo->ctrlKey);
-	if(keyInfo->shiftKey != KEY_NOT_SET)
-		shift	= ::GetKeyNameTextEx(keyInfo->shiftKey);
-	if(keyInfo->key != KEY_NOT_SET)
-		key		= ::GetKeyNameTextEx(keyInfo->key);
-
-	LPTSTR buffer = NULL;
-	if(alt == NULL && ctrl == NULL && shift == NULL && key == NULL){
-		buffer = ::sprintf_alloc(L"");
-	}else if(alt == NULL && ctrl == NULL && shift == NULL && key != NULL){
-		buffer = ::sprintf_alloc(L"%s", key);
-	}else if(alt == NULL && ctrl == NULL && shift != NULL && key != NULL){
-		buffer = ::sprintf_alloc(L"%s + %s", shift, key);
-	}else if(alt == NULL && ctrl != NULL && shift == NULL && key != NULL){
-		buffer = ::sprintf_alloc(L"%s + %s", ctrl, key);
-	}else if(alt != NULL && ctrl == NULL && shift == NULL && key != NULL){
-		buffer = ::sprintf_alloc(L"%s + %s", alt, key);
-	}else if(alt == NULL && ctrl != NULL && shift != NULL && key != NULL){
-		buffer = ::sprintf_alloc(L"%s + %s + %s", ctrl, shift, key);
-	}else if(alt != NULL && ctrl == NULL && shift != NULL && key != NULL){
-		buffer = ::sprintf_alloc(L"%s + %s + %s", alt, shift, key);
-	}else if(alt != NULL && ctrl != NULL && shift == NULL && key != NULL){
-		buffer = ::sprintf_alloc(L"%s + %s + %s", ctrl, alt, key);
-	}else if(alt != NULL && ctrl != NULL && shift != NULL && key != NULL){
-		buffer = ::sprintf_alloc(L"%s + %s + %s + %s", ctrl, alt, shift, key);
-	}else{
-		buffer = ::sprintf_alloc(L"undef!");
-		::ErrorMessageBox(L"キー設定に失敗しました");
-	}
-
-	::GlobalFree(alt);
-	::GlobalFree(ctrl);
-	::GlobalFree(shift);
-	::GlobalFree(key);
-	return buffer;
-}
-
 BOOL CreateDesktopShortcutForGamma(double gamma)
 {
 	TCHAR desktopPath[MAX_PATH];
@@ -202,67 +156,19 @@ void RecognizeMonitors(void)
 	EnumDisplayMonitors(::GetDC(NULL), NULL, MonitorEnumProc, 0);
 }
 
-// 設定ファイルのパスを取得します
-// 実行ファイルのディレクトリに、config.ini(デフォルト)を付加した物になります
-// 動的にバッファを格納して返却するので、解放必須です
-LPTSTR GetConfigPath(LPTSTR fileName=L"config.ini")
-{
-	LPTSTR lpExecDirectory = (LPTSTR)::GlobalAlloc(GMEM_FIXED, MAX_PATH * sizeof(TCHAR));
-	if( ::GetExecuteDirectory(lpExecDirectory, MAX_PATH) ) {
-		LPTSTR lpConfigPath = sprintf_alloc(L"%s%s", lpExecDirectory, fileName);
-		::GlobalFree(lpExecDirectory);
-		return lpConfigPath;
-	} else {
-		::GlobalFree(lpExecDirectory);
-		::ShowLastError();
-		return NULL;
-	}
-}
-
-void QuickSetKeyInfo(KEYINFO *info, int optKey, int key)
-{
-	// clear keyinfo
-	::ClearKeyInfo(info);
-
-	if(optKey == VK_CONTROL){
-		info->ctrlKey = VK_CONTROL;
-	}else if(optKey == VK_SHIFT){
-		info->shiftKey = VK_SHIFT;
-	}else if(optKey == VK_MENU){
-		info->altKey = VK_MENU;
-	}else{
-		::ErrorMessageBox(L"unknown optKey type");
-	}
-
-	info->key = key;
-}
-
 void LoadConfig(void)
 {
-	LPTSTR lpConfigPath = ::GetConfigPath();
+	LPTSTR lpConfigPath = ::GetConfigPath(L"config.ini");
 
 	// setup default key config
 	::QuickSetKeyInfo(&::g_lightUpKeyInfo, VK_CONTROL, VK_PRIOR);
 	::QuickSetKeyInfo(&::g_lightDownKeyInfo, VK_CONTROL, VK_NEXT);
 	::QuickSetKeyInfo(&::g_lightResetKeyInfo, VK_CONTROL, VK_HOME);
 
-	// lightup keyconfig
-	::g_lightUpKeyInfo.key		= ::GetPrivateProfileInt(L"KeyBind", L"lightUpKey", ::g_lightUpKeyInfo.key, lpConfigPath);
-	::g_lightUpKeyInfo.ctrlKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightUpCtrlKey", ::g_lightUpKeyInfo.ctrlKey, lpConfigPath);
-	::g_lightUpKeyInfo.shiftKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightUpShiftKey", ::g_lightUpKeyInfo.shiftKey, lpConfigPath);
-	::g_lightUpKeyInfo.altKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightUpAltKey", ::g_lightUpKeyInfo.altKey, lpConfigPath);
-
-	// lightdown keyconfig
-	::g_lightDownKeyInfo.key		= ::GetPrivateProfileInt(L"KeyBind", L"lightDownKey", ::g_lightDownKeyInfo.key, lpConfigPath);
-	::g_lightDownKeyInfo.ctrlKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightDownCtrlKey", ::g_lightDownKeyInfo.ctrlKey, lpConfigPath);
-	::g_lightDownKeyInfo.shiftKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightDownShiftKey", ::g_lightDownKeyInfo.shiftKey, lpConfigPath);
-	::g_lightDownKeyInfo.altKey		= ::GetPrivateProfileInt(L"KeyBind", L"lightDownAltKey", ::g_lightDownKeyInfo.altKey, lpConfigPath);
-
-	// lightreset keyconfig
-	::g_lightResetKeyInfo.key		= ::GetPrivateProfileInt(L"KeyBind", L"lightResetKey", ::g_lightResetKeyInfo.key, lpConfigPath);
-	::g_lightResetKeyInfo.ctrlKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightResetCtrlKey", ::g_lightResetKeyInfo.ctrlKey, lpConfigPath);
-	::g_lightResetKeyInfo.shiftKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightResetShiftKey", ::g_lightResetKeyInfo.shiftKey, lpConfigPath);
-	::g_lightResetKeyInfo.altKey	= ::GetPrivateProfileInt(L"KeyBind", L"lightResetAltKey", ::g_lightResetKeyInfo.altKey, lpConfigPath);
+	// light up/down/reset keyconfig
+	::GetPrivateProfileKeyInfo(L"KeyBind", L"lightUp", &::g_lightUpKeyInfo, lpConfigPath);
+	::GetPrivateProfileKeyInfo(L"KeyBind", L"lightDown", &::g_lightDownKeyInfo, lpConfigPath);
+	::GetPrivateProfileKeyInfo(L"KeyBind", L"lightReset", &::g_lightResetKeyInfo, lpConfigPath);
 
 	::g_gamma = ::GetPrivateProfileDouble(L"Gamma", L"gamma", DEFAULT_GAMMA, lpConfigPath);
 	::g_gammaR = ::GetPrivateProfileDouble(L"Gamma", L"gammaR", DEFAULT_GAMMA, lpConfigPath);
@@ -279,25 +185,12 @@ void LoadConfig(void)
 void SaveConfig(void)
 {
 	// プログラム(実行ファイル)のあるフォルダに設定を保存します
-	LPTSTR lpConfigPath = ::GetConfigPath();
+	LPTSTR lpConfigPath = ::GetConfigPath(L"config.ini");
 
-	// lightup keyconfigs
-	::WritePrivateProfileInt(L"KeyBind", L"lightUpKey", ::g_lightUpKeyInfo.key, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightUpCtrlKey", ::g_lightUpKeyInfo.ctrlKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightUpShiftKey", ::g_lightUpKeyInfo.shiftKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightUpAltKey", ::g_lightUpKeyInfo.altKey, lpConfigPath);
-
-	// lightdown keyconfig
-	::WritePrivateProfileInt(L"KeyBind", L"lightDownKey", ::g_lightDownKeyInfo.key, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightDownCtrlKey", ::g_lightDownKeyInfo.ctrlKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightDownShiftKey", ::g_lightDownKeyInfo.shiftKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightDownAltKey", ::g_lightDownKeyInfo.altKey, lpConfigPath);
-
-	// lightreset keyconfig
-	::WritePrivateProfileInt(L"KeyBind", L"lightResetKey", ::g_lightResetKeyInfo.key, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightResetCtrlKey", ::g_lightResetKeyInfo.ctrlKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightResetShiftKey", ::g_lightResetKeyInfo.shiftKey, lpConfigPath);
-	::WritePrivateProfileInt(L"KeyBind", L"lightResetAltKey", ::g_lightResetKeyInfo.altKey, lpConfigPath);
+	// light up/down/reset keyconfigs
+	::WritePrivateProfileKeyInfo(L"KeyBind", L"lightUp", &::g_lightUpKeyInfo, lpConfigPath);
+	::WritePrivateProfileKeyInfo(L"KeyBind", L"lightDown", &::g_lightDownKeyInfo, lpConfigPath);
+	::WritePrivateProfileKeyInfo(L"KeyBind", L"lightReset", &::g_lightResetKeyInfo, lpConfigPath);
 
 	::WritePrivateProfileDouble(L"Gamma", L"gamma", ::g_gamma, lpConfigPath);
 	::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);

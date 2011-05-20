@@ -1,5 +1,5 @@
 ﻿#pragma once
-#define WIN32_LEAN_AND_MEAN
+//#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <WindowsX.h>
 #include <stdlib.h>
@@ -14,8 +14,9 @@
 #pragma comment(lib, "shlwapi")
 
 #include <math.h>
+#include <string>
 
-#include "stdafx.h"
+#include "KeyHook.h"
 
 // ダイアログ用のメッセージクラッカー
 #define HANDLE_DLG_MSG(hwnd, msg, fn) \
@@ -29,7 +30,7 @@
 #endif
 
 #ifndef DLLEXPORT
-	#define DLLEXPORT extern "C" __declspec(dllexport)
+	#define DLLEXPORT extern "C" __declspec(dllimport)
 #endif
 
 void trace(LPCTSTR format, ...);
@@ -74,6 +75,19 @@ LPTSTR GetBackupFilePath(LPCTSTR filePath, LPCTSTR backupExt);
 BOOL BackupFile(LPCTSTR filePath, LPCTSTR backupExt);
 BOOL RestoreFile(LPCTSTR filePath, LPCTSTR backupExt);
 LPTSTR GetWindowTitle(HWND hWnd);
+BOOL ShowContextMenu(HWND hWnd, UINT menuID);
+void TasktrayAddIcon(HINSTANCE hInstance, UINT msg, UINT id, UINT iconId, LPCTSTR tips, HWND hWnd);
+void TasktrayModifyIcon(HINSTANCE hInstance, UINT msg, UINT id, HWND hWnd,  LPCTSTR tips, UINT icon);
+void TasktrayDeleteIcon(HWND hWnd, UINT id);
+HWND WindowFromCursorPos();
+void NoticeRedraw(HWND hWnd);
+void RectangleNormalize(RECT *rect);
+std::wstring str2wstr(std::string str);
+LPTSTR GetConfigPath(LPTSTR fileName);
+void GetPrivateProfileKeyInfo(LPCTSTR section, LPCTSTR baseKeyName, KEYINFO *keyInfo, LPCTSTR configPath);
+void WritePrivateProfileKeyInfo(LPCTSTR section, LPCTSTR baseKeyName, KEYINFO *keyInfo, LPCTSTR configPath);
+void QuickSetKeyInfo(KEYINFO *info, int optKey, int key);
+LPTSTR GetKeyInfoString(KEYINFO *keyInfo);
 
 // 多重起動防止用簡易クラス
 #include <exception>
