@@ -158,6 +158,9 @@ void RecognizeMonitors(void)
 
 void LoadConfig(void)
 {
+	// モニタを認識します
+	RecognizeMonitors();
+
 	LPTSTR lpConfigPath = ::GetConfigPath(L"config.ini");
 
 	// setup default key config
@@ -177,7 +180,19 @@ void LoadConfig(void)
 
 	// 起動時はガンマリセットする
 	// 前回終了時のガンマ設定に強制変更
-	gammaController.setGamma(g_gammaR, g_gammaG, g_gammaB);
+	// gammaController.setGamma(g_gammaR, g_gammaG, g_gammaB);
+
+	// モニタごとにガンマを設定します
+	int count = gammaController.monitorGetCount();
+	for(int i=0; i<count; i++){
+		LPTSTR key = ::sprintf_alloc(L"Monitor%d", i + 1);
+		double level = ::GetPrivateProfileDouble(key, L"gamma", DEFAULT_GAMMA, lpConfigPath);
+		double r = ::GetPrivateProfileDouble(key, L"gammaR", DEFAULT_GAMMA, lpConfigPath);
+		double g = ::GetPrivateProfileDouble(key, L"gammaG", DEFAULT_GAMMA, lpConfigPath);
+		double b = ::GetPrivateProfileDouble(key, L"gammaB", DEFAULT_GAMMA, lpConfigPath);
+		gammaController.setMonitorGammaIndex(i, r, g, b, level);
+		::GlobalFree(key);
+	}
 
 	::GlobalFree(lpConfigPath);
 }
@@ -196,6 +211,21 @@ void SaveConfig(void)
 	::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);
 	::WritePrivateProfileDouble(L"Gamma", L"gammaG", ::g_gammaG, lpConfigPath);
 	::WritePrivateProfileDouble(L"Gamma", L"gammaB", ::g_gammaB, lpConfigPath);
+
+	// モニタごとのガンマ値を保存する
+	// [Monitor1] = index 0
+	// [Monitor2] = index 1
+	// [Monitor3] = index 2 みたいな感じで対応付け
+	int count = gammaController.monitorGetCount();
+	for(int i=0; i<count; i++){
+		// モニタのガンマ値を読み込んで保存
+		LPTSTR key = ::sprintf_alloc(L"Monitor%d", i + 1);
+		::WritePrivateProfileDouble(key, L"gamma",	gammaController.monitorGet(i)->level, lpConfigPath);
+		::WritePrivateProfileDouble(key, L"gammaR",	gammaController.monitorGet(i)->r, lpConfigPath);
+		::WritePrivateProfileDouble(key, L"gammaG",	gammaController.monitorGet(i)->g, lpConfigPath);
+		::WritePrivateProfileDouble(key, L"gammaB",	gammaController.monitorGet(i)->b, lpConfigPath);
+		::GlobalFree(key);
+	}
 
 	::GlobalFree(lpConfigPath);
 }
@@ -368,6 +398,25 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	return TRUE;
 }
 
+BOOL SetCursorPosToWindowPos(HWND hWnd)
+{
+	POINT point;
+	::GetCursorPos(&point);
+
+	RECT rect;
+	::GetWindowRect(hWnd, &rect);
+	int width = rect.right - rect.left;
+	int height = rect.bottom - rect.top;
+
+	return ::SetWindowPos(hWnd, NULL, point.x - width, point.y - height, 0, 0, SWP_NOSIZE); // マウスの位置に表示する
+}
+
+void SetCursorPosToWindowTopMost(HWND hWnd)
+{
+	::SetWindowTopMost(hWnd);			// 常に最前面に表示
+	::SetCursorPosToWindowPos(hWnd);	// カーソルの位置にマウスを移動する
+}
+
 // モニタ関係なく、すべてのデスクトップに対するガンマ変更プロシージャ
 INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -424,13 +473,15 @@ INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(g_gammaG));
 		SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(g_gammaB));
 
-		::SetWindowTopMost(hDlg); // 常に最前面に表示
+		::SetCursorPosToWindowTopMost(hDlg);
 		return TRUE;
 
 	case WM_COMMAND:     // ダイアログボックス内の何かが選択されたとき
 		switch( LOWORD( wp ) ){
 		case IDOK: // 「OK」ボタンが選択された
 			gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
+			EndDialog(g_hGammaDlg, LOWORD(wp));
+			g_hGammaDlg = NULL;
 			break;
 		case IDCANCEL: // 「キャンセル」ボタンが選択された, ダイアログボックスを消す
 			EndDialog(g_hGammaDlg, LOWORD(wp));
@@ -527,7 +578,7 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		::SetWindowTextFormat(hDlg, DLG_MONITOR_GAMMA_WINDOW_TITLE_FORMAT, monitor->monitorName);
 
 		// 常に最前面に表示
-		::SetWindowTopMost(hDlg);
+		::SetCursorPosToWindowTopMost(hDlg);(hDlg);
 		return TRUE;
 
 	case WM_COMMAND:     // ダイアログボックス内の何かが選択されたとき
@@ -555,6 +606,9 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 				SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(monitor->r));
 				SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(monitor->g));
 				SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(monitor->b));
+
+				EndDialog(g_hMonitorGammaDlg, LOWORD(wp));
+				g_hMonitorGammaDlg = NULL;
 			}
 			break;
 		case IDCANCEL:   // 「キャンセル」ボタンが選択された
@@ -681,7 +735,7 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 
 	switch( msg ){
 	case WM_INITDIALOG:  // ダイアログボックスが作成されたとき
-		::SetWindowTopMost(hDlg); // ウインドウを最前面にします
+		::SetCursorPosToWindowTopMost(hDlg);(hDlg); // ウインドウを最前面にします
 		::SetCurrentKeyConfigToGUI(hDlg); // 現在のキー設定をGUI上に反映させます
 
 		// 一時格納用バッファを初期化します
@@ -843,8 +897,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 		// モニタの種類、数を認識する
-		RecognizeMonitors();
-
 		SetWindowHandle(hWnd);
 
 		// 一番最初のキーフック
