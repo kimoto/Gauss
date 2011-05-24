@@ -513,46 +513,6 @@ BOOL GetDesktopPath(LPTSTR buffer, DWORD size_in_words)
 	return TRUE;
 }
 
-// モニタ個別にガンマを設定
-BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB)
-{
-	gammaR = 1.0 / gammaR;
-	gammaG = 1.0 / gammaG;
-	gammaB = 1.0 / gammaB;
-
-	WORD ramp[256*3];
-	for(int i=0; i<256; i++){
-		double valueR = pow((i + 1) / 256.0, gammaR) * 65536;
-		double valueG = pow((i + 1) / 256.0, gammaG) * 65536;
-		double valueB = pow((i + 1) / 256.0, gammaB) * 65536;
-		
-		if(valueR < 0) valueR = 0; if(valueR > 65535) valueR = 65535;
-		if(valueG < 0) valueG = 0; if(valueG > 65535) valueG = 65535;
-		if(valueB < 0) valueB = 0; if(valueB > 65535) valueB = 65535;
-		
-		ramp[0+i] = (WORD)valueR;
-		ramp[256+i] = (WORD)valueG;
-		ramp[512+i] = (WORD)valueB;
-	}
-	return !::SetDeviceGammaRamp(hdc, &ramp);
-}
-
-BOOL SetMonitorGamma(HDC hdc, double gamma)
-{
-	return SetMonitorGamma(hdc, gamma, gamma, gamma);
-}
-
-// すべてのモニタ共通にガンマを設定
-BOOL SetGamma(double gammaR, double gammaG, double gammaB)
-{
-	return SetMonitorGamma(::GetDC(NULL), gammaR, gammaG, gammaB);
-}
-
-BOOL SetGamma(double gamma)
-{
-	return SetGamma(gamma, gamma, gamma);
-}
-
 BOOL SetWindowTopMost(HWND hWnd)
 {
 	return ::SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_NOSENDCHANGING);

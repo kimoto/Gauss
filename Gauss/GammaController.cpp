@@ -1,6 +1,56 @@
 #include "stdafx.h"
 #include "GammaController.h"
 
+// モニタ個別にガンマを設定
+//#define MIN_GAMMA 0.23
+//#define MAX_GAMMA 4.40
+BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB)
+{
+	// 補正
+	if(gammaR < MIN_GAMMA) gammaR = MIN_GAMMA;
+	if(gammaG < MIN_GAMMA) gammaG = MIN_GAMMA;
+	if(gammaB < MIN_GAMMA) gammaB = MIN_GAMMA;
+
+	if(gammaR > MAX_GAMMA) gammaR = MAX_GAMMA;
+	if(gammaG > MAX_GAMMA) gammaG = MAX_GAMMA;
+	if(gammaB > MAX_GAMMA) gammaB = MAX_GAMMA;
+	gammaR = 1.0 / gammaR;
+	gammaG = 1.0 / gammaG;
+	gammaB = 1.0 / gammaB;
+
+	WORD ramp[256*3];
+	for(int i=0; i<256; i++){
+		double valueR = pow((i + 1) / 256.0, gammaR) * 65536;
+		double valueG = pow((i + 1) / 256.0, gammaG) * 65536;
+		double valueB = pow((i + 1) / 256.0, gammaB) * 65536;
+		
+		if(valueR < 0) valueR = 0; if(valueR > 65535) valueR = 65535;
+		if(valueG < 0) valueG = 0; if(valueG > 65535) valueG = 65535;
+		if(valueB < 0) valueB = 0; if(valueB > 65535) valueB = 65535;
+		
+		ramp[0+i] = (WORD)valueR;
+		ramp[256+i] = (WORD)valueG;
+		ramp[512+i] = (WORD)valueB;
+	}
+	return !::SetDeviceGammaRamp(hdc, &ramp);
+}
+
+BOOL SetMonitorGamma(HDC hdc, double gamma)
+{
+	return SetMonitorGamma(hdc, gamma, gamma, gamma);
+}
+
+// すべてのモニタ共通にガンマを設定
+BOOL SetGamma(double gammaR, double gammaG, double gammaB)
+{
+	return SetMonitorGamma(::GetDC(NULL), gammaR, gammaG, gammaB);
+}
+
+BOOL SetGamma(double gamma)
+{
+	return SetGamma(gamma, gamma, gamma);
+}
+
 GammaController::GammaController()
 {
 	m_gamma = DEFAULT_GAMMA;
@@ -20,7 +70,7 @@ bool GammaController::setGamma(double r, double g, double b)
 bool GammaController::setGamma(double gamma)
 {
 	m_gamma = gamma;
-	return (::SetGamma(gamma) == TRUE);
+	return this->setGamma(gamma, gamma, gamma);
 }
 
 bool GammaController::setMonitorGamma(HDC hdc, double r, double g, double b)

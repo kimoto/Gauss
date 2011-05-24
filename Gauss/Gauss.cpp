@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <regex>
+#include <list>
+using namespace std;
 
 #include <shlobj.h>
 #pragma comment(lib, "shell32.lib")
@@ -230,6 +233,172 @@ void SaveConfig(void)
 	::GlobalFree(lpConfigPath);
 }
 
+/**
+* split関数
+* @param string str 分割したい文字列
+* @param string delim デリミタ
+* @return list<string> 分割された文字列
+* copy from goodjob.boy.jp/chirashinoura/id/100.html
+*/
+list<wstring> split(wstring str, wstring delim)
+{
+    list<wstring> result;
+    int cutAt;
+    while( (cutAt = str.find_first_of(delim)) != str.npos )
+    {
+        if(cutAt > 0)
+        {
+            result.push_back(str.substr(0, cutAt));
+        }
+        str = str.substr(cutAt + 1);
+    }
+    if(str.length() > 0)
+    {
+        result.push_back(str);
+    }
+	return result;
+}
+
+double wstring2double(wstring str)
+{
+	LPTSTR start = (LPTSTR)str.c_str();
+	LPTSTR end = NULL;
+
+	double value = ::wcstod(start, &end);
+	if(value == 0 && start == end){
+		throw L"illegal argument";
+	}
+	return value;
+}
+
+long wstring2int(wstring str, int radix = 10)
+{
+	LPTSTR start = (LPTSTR)str.c_str();
+	LPTSTR end = NULL;
+
+	long value = ::wcstol(start, &end, radix);
+	if(value == 0 && start == end){
+		throw L"illegal argument";
+	}
+	return value;
+}
+
+// R:G:B の形式の文字列を読み込んでガンマ設定に反映させます
+void CommandLine_SetGammaRGB(LPTSTR input)
+{
+	// コロンで区切る
+	wstring ws = wstring(input);
+	list<wstring> l = split(ws, L":");
+
+	// 要素数があってることを確認
+	if(l.size() != 3){
+		::ErrorMessageBox(L"引数の指定に問題があります: %s", input);
+		exit(-1);
+	}
+
+	list<wstring>::iterator it = l.begin();
+	try{
+		double r = wstring2double(*it++);
+		double g = wstring2double(*it++);
+		double b = wstring2double(*it++);
+		gammaController.setGamma(r, g, b);
+	}catch(LPTSTR str){
+		::ErrorMessageBox(L"引数の指定に問題があります: %s", str);
+	}
+}
+
+void CommandLine_SetGamma(LPTSTR input)
+{
+	double gamma = wstring2double(input);
+	gammaController.setGamma(gamma);
+}
+
+void CommandLine_Reset()
+{
+	g_gamma = DEFAULT_GAMMA;
+	gammaController.setGamma(DEFAULT_GAMMA);
+}
+
+
+// -monitor-gamma Monitor1=1.0,Monitor2=2.0
+// こういうのを変更すればいい
+void CommandLine_SetMonitorGamma(LPTSTR input)
+{
+	// カンマで区切る
+	list<wstring> csl = split(wstring(input), L",");
+
+	// 要素にたいして、さらに=で分割
+	list<wstring>::iterator it = csl.begin();
+	while(it != csl.end()){
+		wstring s = wstring((*it).c_str());
+
+		list<wstring> eql = split(s, L"=");
+		list<wstring>::iterator l = eql.begin();
+
+		if(eql.size() != 2){
+			::ErrorMessageBox(L"引数のフォーマットエラーです");
+			exit(-1);
+		}
+
+		wstring monitorName = wstring((*l++).c_str());
+		wstring gamma_value = wstring((*l++).c_str());
+		double gamma = wstring2double(gamma_value);
+		
+		std::tr1::wregex exp(L".*([0-9]+)");
+		std::tr1::wsmatch match;
+		if( std::tr1::regex_match(monitorName, match, exp) ){
+			int index = wstring2int(match.str(1)) - 1;
+			gammaController.setMonitorGammaIndex(index, gamma);
+		}
+		it++;
+	}
+}
+
+// -monitor-gamma Monitor1=1.0,Monitor2=2.0
+// こういうのを変更すればいい
+void CommandLine_SetMonitorGammaRGB(LPTSTR input)
+{
+	// カンマで区切る
+	list<wstring> csl = split(wstring(input), L",");
+
+	// 要素にたいして、さらに=で分割
+	list<wstring>::iterator it = csl.begin();
+	while(it != csl.end()){
+		wstring s = wstring((*it).c_str());
+
+		list<wstring> eql = split(s, L"=");
+		list<wstring>::iterator l = eql.begin();
+
+		if(eql.size() != 2){
+			::ErrorMessageBox(L"引数のフォーマットエラーです");
+			exit(-1);
+		}
+
+		wstring monitorName = wstring((*l++).c_str());
+
+		wstring gamma_value = wstring((*l++).c_str());
+		//double gamma = wstring2double(gamma_value);
+		
+		std::tr1::wregex exp(L".*([0-9]+)");
+		std::tr1::wsmatch match;
+		if( std::tr1::regex_match(monitorName, match, exp) ){
+			int index = wstring2int(match.str(1)) - 1;
+
+			// ガンマ値を取得する
+			std::tr1::wregex exp2(L"([0-9.]+):([0-9.]+):([0-9.]+)");
+			std::tr1::wsmatch match2;
+			if(std::tr1::regex_match(gamma_value, match2, exp2)){
+				double r = wstring2double(match2.str(1));
+				double g = wstring2double(match2.str(2));
+				double b = wstring2double(match2.str(3));
+				
+				gammaController.setMonitorGammaIndex(index, r, g, b, (r + g + b) / 3);
+			}
+		}
+		it++;
+	}
+}
+
 int APIENTRY _tWinMain(HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPTSTR    lpCmdLine,
@@ -241,6 +410,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
+
+	// config.iniを読み込んで設定を反映します
+	LoadConfig();
 
 	// 多重起動防止の前に引数に明るさ情報が指定されていたら
 	// それを利用してすぐに明るさを変更できるようにする
@@ -262,22 +434,22 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 				LPTSTR lpStr = lplpszArgs[i+1];
 				LPTSTR lpEnd = NULL;
 
-				// gamma指定があったらそのガンマに設定する
+				// 全体のガンマ設定機能
 				if(wcscmp(lpOpt, L"-gamma") == 0){
 					// resetでリセット
 					if(wcscmp(lpStr, L"reset") == 0 || wcscmp(lpStr, L"default") == 0){
-						g_gamma = DEFAULT_GAMMA;
-						//gammaController.reset();
-						gammaController.setGamma(DEFAULT_GAMMA);
+						CommandLine_Reset();
 					}else{
-						g_gamma = ::wcstod(lpStr, &lpEnd);
-						if(g_gamma == 0 && lpStr == lpEnd){
-							ErrorMessageBox(L"Format Error (1): ガンマ値が設定されていません");
-							exit(-1);
-						}
-						gammaController.setGamma(g_gamma);
-						//::ErrorMessageBox(L"ガンマをセットしました: %f", g_gamma);
+						CommandLine_SetGamma(lpStr);
 					}
+				// 個別の色ごとガンマ設定機能
+				}else if(wcscmp(lpOpt, L"-gammaRGB") == 0){
+					CommandLine_SetGammaRGB(lpStr);
+				// 特定のモニタのガンマ設定
+				}else if(wcscmp(lpOpt, L"-monitor-gamma") == 0){
+					CommandLine_SetMonitorGamma(lpStr);
+				}else if(wcscmp(lpOpt, L"-monitor-gammaRGB") == 0){
+					CommandLine_SetMonitorGammaRGB(lpStr);
 				}
 			}
 		}else{
@@ -286,7 +458,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 
 		// コマンドライン,ショートカットからの実行時は常駐モードへ移行しない
-		//exit(0);
+		::SaveConfig();
+		exit(0);
 	}
 
 	LocalFree(lplpszArgs);
@@ -298,9 +471,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		CloseHandle(hMutex);
 		return FALSE;
 	}
-
-	// config.iniを読み込んで設定を反映します
-	LoadConfig();
 
 	MSG msg;
 	HACCEL hAccelTable;
