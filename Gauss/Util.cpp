@@ -15,7 +15,7 @@ LPVOID GlobalAllocHeap(UINT flags, SIZE_T size)
 
 void trace(LPCTSTR format, ...)
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	va_list arg;
 	va_start(arg, format);
 	
@@ -23,7 +23,7 @@ void trace(LPCTSTR format, ...)
 	::_vsnwprintf_s(buffer, TRACE_BUFFER_SIZE, _TRUNCATE, format, arg);
 	::OutputDebugString(buffer);	
 	va_end(arg);
-#endif
+//#endif
 }
 
 void DrawFormatText(HDC hdc, LPRECT rect, UINT type, LPCTSTR format, ...)

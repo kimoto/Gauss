@@ -1262,14 +1262,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_DESTROY:
 		SaveConfig();
-
 		StopHook();
 
-		NOTIFYICONDATA tnid; 
-		tnid.cbSize = sizeof(NOTIFYICONDATA); 
-		tnid.hWnd = hWnd;				// メインウィンドウハンドル
-		tnid.uID = ID_TRAYICON;			// コントロールID
-		::Shell_NotifyIcon(NIM_DELETE, &tnid); 
+		//::TasktrayDeleteIcon(hWnd, ID_TRAYICON);
+		::Shell_NotifyIcon(NIM_DELETE, &nid);
 
 		SetMenu(hWnd, NULL);
 		DestroyMenu(hMenu);
