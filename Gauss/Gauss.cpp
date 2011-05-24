@@ -105,6 +105,54 @@ BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
+BOOL CreateDesktopShortcutForMonitorGamma(int index, MonitorInfo *monitor)
+{
+	TCHAR desktopPath[MAX_PATH];
+	if( !::GetDesktopPath(desktopPath, MAX_PATH) )
+		return FALSE;
+
+	//実行中のプロセスのフルパス名を取得する
+	TCHAR szPath[MAX_PATH];
+	if( GetModuleFileName(NULL, (LPWSTR)szPath, sizeof(szPath)) == 0 ){
+		return FALSE;
+	}
+
+	TCHAR linkPath[MAX_PATH];
+	TCHAR gammaOption[MAX_PATH];
+	::_stprintf_s(linkPath, L"%s\\ガンマ %s R%.2fG%.2fB%.2f.lnk", desktopPath, monitor->monitorName, monitor->r, monitor->g, monitor->b);
+	::_stprintf_s(gammaOption, L"-monitor-gammaRGB Monitor%d=%.1f:%.1f:%.1f", index + 1, monitor->r, monitor->g, monitor->b);
+
+	::CoInitialize(NULL);
+	BOOL result = CreateShortcut(szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
+	::CoUninitialize();
+
+	return result;
+}
+
+BOOL CreateDesktopShortcutForGammaRGB(double gammaR, double gammaG, double gammaB)
+{
+	TCHAR desktopPath[MAX_PATH];
+	if( !::GetDesktopPath(desktopPath, MAX_PATH) )
+		return FALSE;
+
+	//実行中のプロセスのフルパス名を取得する
+	TCHAR szPath[MAX_PATH];
+	if( GetModuleFileName(NULL, (LPWSTR)szPath, sizeof(szPath)) == 0 ){
+		return FALSE;
+	}
+
+	TCHAR linkPath[MAX_PATH];
+	TCHAR gammaOption[MAX_PATH];
+	::_stprintf_s(linkPath, L"%s\\ガンマ R%.2fG%.2fB%.2f.lnk", desktopPath, gammaR, gammaG, gammaB);
+	::_stprintf_s(gammaOption, L"-gammaRGB %.1f:%.1f:%.1f", gammaR, gammaG, gammaB);
+
+	::CoInitialize(NULL);
+	BOOL result = CreateShortcut(szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
+	::CoUninitialize();
+
+	return result;
+}
+
 BOOL CreateDesktopShortcutForGamma(double gamma)
 {
 	TCHAR desktopPath[MAX_PATH];
@@ -242,20 +290,20 @@ void SaveConfig(void)
 */
 list<wstring> split(wstring str, wstring delim)
 {
-    list<wstring> result;
-    int cutAt;
-    while( (cutAt = str.find_first_of(delim)) != str.npos )
-    {
-        if(cutAt > 0)
-        {
-            result.push_back(str.substr(0, cutAt));
-        }
-        str = str.substr(cutAt + 1);
-    }
-    if(str.length() > 0)
-    {
-        result.push_back(str);
-    }
+	list<wstring> result;
+	int cutAt;
+	while( (cutAt = str.find_first_of(delim)) != str.npos )
+	{
+		if(cutAt > 0)
+		{
+			result.push_back(str.substr(0, cutAt));
+		}
+		str = str.substr(cutAt + 1);
+	}
+	if(str.length() > 0)
+	{
+		result.push_back(str);
+	}
 	return result;
 }
 
@@ -343,7 +391,7 @@ void CommandLine_SetMonitorGamma(LPTSTR input)
 		wstring monitorName = wstring((*l++).c_str());
 		wstring gamma_value = wstring((*l++).c_str());
 		double gamma = wstring2double(gamma_value);
-		
+
 		std::tr1::wregex exp(L".*([0-9]+)");
 		std::tr1::wsmatch match;
 		if( std::tr1::regex_match(monitorName, match, exp) ){
@@ -378,7 +426,7 @@ void CommandLine_SetMonitorGammaRGB(LPTSTR input)
 
 		wstring gamma_value = wstring((*l++).c_str());
 		//double gamma = wstring2double(gamma_value);
-		
+
 		std::tr1::wregex exp(L".*([0-9]+)");
 		std::tr1::wsmatch match;
 		if( std::tr1::regex_match(monitorName, match, exp) ){
@@ -391,7 +439,7 @@ void CommandLine_SetMonitorGammaRGB(LPTSTR input)
 				double r = wstring2double(match2.str(1));
 				double g = wstring2double(match2.str(2));
 				double b = wstring2double(match2.str(3));
-				
+
 				gammaController.setMonitorGammaIndex(index, r, g, b, (r + g + b) / 3);
 			}
 		}
@@ -399,21 +447,8 @@ void CommandLine_SetMonitorGammaRGB(LPTSTR input)
 	}
 }
 
-int APIENTRY _tWinMain(HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPTSTR    lpCmdLine,
-	int       nCmdShow)
+void CommandLine_Parse()
 {
-	// メモリリークの検出機能を有効化します
-	// 対象となるのはmallocなどの基本的な関数だけで、外部のglobalallocなどは対象ではないことに留意
-	//_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-
-	UNREFERENCED_PARAMETER(hPrevInstance);
-	UNREFERENCED_PARAMETER(lpCmdLine);
-
-	// config.iniを読み込んで設定を反映します
-	LoadConfig();
-
 	// 多重起動防止の前に引数に明るさ情報が指定されていたら
 	// それを利用してすぐに明るさを変更できるようにする
 	// これは多重起動してもよいものとする
@@ -426,6 +461,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	if( nArgs == 1 ){
 		;
 	}else{
+		::RecognizeMonitors();
+		gammaController.reset(); // bug対策
+
 		// なんか引数あり、引数と値のペアの数がちゃんとしてるかチェック
 		if( (nArgs - 1) % 2 == 0 ){
 			// パラメーターの数があってるので中身が合ってるかとか意味があってるかのチェック
@@ -442,10 +480,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 					}else{
 						CommandLine_SetGamma(lpStr);
 					}
-				// 個別の色ごとガンマ設定機能
+					// 個別の色ごとガンマ設定機能
 				}else if(wcscmp(lpOpt, L"-gammaRGB") == 0){
 					CommandLine_SetGammaRGB(lpStr);
-				// 特定のモニタのガンマ設定
+					// 特定のモニタのガンマ設定
 				}else if(wcscmp(lpOpt, L"-monitor-gamma") == 0){
 					CommandLine_SetMonitorGamma(lpStr);
 				}else if(wcscmp(lpOpt, L"-monitor-gammaRGB") == 0){
@@ -458,11 +496,29 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 
 		// コマンドライン,ショートカットからの実行時は常駐モードへ移行しない
-		::SaveConfig();
+		//::SaveConfig();
 		exit(0);
 	}
-
+	
 	LocalFree(lplpszArgs);
+}
+
+int APIENTRY _tWinMain(HINSTANCE hInstance,
+	HINSTANCE hPrevInstance,
+	LPTSTR    lpCmdLine,
+	int       nCmdShow)
+{
+	// メモリリークの検出機能を有効化します
+	// 対象となるのはmallocなどの基本的な関数だけで、外部のglobalallocなどは対象ではないことに留意
+	//_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+
+	UNREFERENCED_PARAMETER(hPrevInstance);
+	UNREFERENCED_PARAMETER(lpCmdLine);
+
+	// config.iniを読み込んで設定を反映します
+	//LoadConfig();
+
+	CommandLine_Parse();
 
 	// 多重起動防止
 	hMutex = CreateMutex(NULL, TRUE, MUTEX_NAME);
@@ -471,6 +527,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		CloseHandle(hMutex);
 		return FALSE;
 	}
+
+	::LoadConfig();
 
 	MSG msg;
 	HACCEL hAccelTable;
@@ -548,7 +606,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	{
 		return FALSE;
 	}
-	
+
 	// 構造体メンバの設定
 	nid.cbSize           = sizeof( NOTIFYICONDATA );
 	nid.uFlags           = (NIF_ICON|NIF_MESSAGE|NIF_TIP);
@@ -557,7 +615,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	nid.uID              = ID_TRAYICON;    // アイコン識別子の定数
 	nid.uCallbackMessage = WM_TASKTRAY;    // 通知メッセージの定数
 	lstrcpy( nid.szTip, TASKTRAY_TOOLTIP_TEXT );  // チップヘルプの文字列
-	
+
 	// アイコンの変更
 	if( !Shell_NotifyIcon( NIM_ADD, (PNOTIFYICONDATAW)&nid ) )
 		::ShowLastError();
@@ -605,7 +663,7 @@ INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 				::SetDlgItemDouble(hDlg, IDC_EDIT_RGAMMA, g_gammaR);
 				::SetDlgItemDouble(hDlg, IDC_EDIT_GGAMMA, g_gammaG);
 				::SetDlgItemDouble(hDlg, IDC_EDIT_BGAMMA, g_gammaB);
-			
+
 				// 連動してR,G,Bそれぞれのスライダーも同じように
 				SLIDER_SETPOS(hDlg, IDC_SLIDER_RGAMMA, GAMMA_TO_SLIDER_POS(g_gammaR));
 				SLIDER_SETPOS(hDlg, IDC_SLIDER_GGAMMA, GAMMA_TO_SLIDER_POS(g_gammaG));
@@ -672,7 +730,7 @@ INT_PTR CALLBACK DlgGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(g_gammaB));
 			break;
 		case IDSHORTCUT: // ショートカット作成
-			CreateDesktopShortcutForGamma(g_gamma);
+			CreateDesktopShortcutForGammaRGB(g_gammaR, g_gammaG, g_gammaB);
 			break;
 		}
 		return TRUE;
@@ -803,7 +861,7 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			::SetDlgItemDouble(hDlg, IDC_BRIGHTNESS_LEVEL, monitor->level);
 			break;
 		case IDSHORTCUT: // ショートカット作成
-			CreateDesktopShortcutForGamma(monitor->level);
+			CreateDesktopShortcutForMonitorGamma(g_hMonitorTargetIndex, monitor);
 			break;
 		}
 		return TRUE;
@@ -1120,7 +1178,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					InsertMenuItem(hView, i, TRUE, &mii);
 				}
 			}
-			
+
 			// カーソルの現在位置を取得
 			POINT point;
 			::GetCursorPos(&point);
@@ -1193,7 +1251,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_GAMMA_RESET:
 		if( IF_KEY_PRESS(lParam) ){
 			trace(L"gamma reset\n");
-			gammaController.reset();
+			//gammaController.reset();
+			gammaController.resetMonitorDifference();
 		}
 		break;
 	case WM_CLOSE:

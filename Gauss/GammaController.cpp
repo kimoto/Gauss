@@ -7,6 +7,7 @@
 BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB)
 {
 	// ï‚ê≥
+	/*
 	if(gammaR < MIN_GAMMA) gammaR = MIN_GAMMA;
 	if(gammaG < MIN_GAMMA) gammaG = MIN_GAMMA;
 	if(gammaB < MIN_GAMMA) gammaB = MIN_GAMMA;
@@ -14,6 +15,7 @@ BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB)
 	if(gammaR > MAX_GAMMA) gammaR = MAX_GAMMA;
 	if(gammaG > MAX_GAMMA) gammaG = MAX_GAMMA;
 	if(gammaB > MAX_GAMMA) gammaB = MAX_GAMMA;
+	*/
 	gammaR = 1.0 / gammaR;
 	gammaG = 1.0 / gammaG;
 	gammaB = 1.0 / gammaB;

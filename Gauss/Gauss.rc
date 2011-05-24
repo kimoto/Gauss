@@ -110,7 +110,7 @@ FONT 8, "Ms Shell Dlg"
     //PUSHBUTTON      "閉じる", IDCANCEL, 162, 22, 54, 16
 	PUSHBUTTON      "デフォルト", IDDEFAULT, 162, 22, 54, 16
 	//PUSHBUTTON      "デフォルト", IDDEFAULT, 162, 39, 55, 16
-    //PUSHBUTTON      "ショートカット作成", IDSHORTCUT, 162, 57, 56, 16
+    PUSHBUTTON      "ショートカット作成", IDSHORTCUT, 162, 39, 54, 16
 
 
     CONTROL         "Gamma", IDC_SLIDER_GAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 10, 97, 16
