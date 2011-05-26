@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
   <meta charset='utf-8'>
@@ -9,12 +9,13 @@
     body {
       margin-top: 1.0em;
       background-color: #FFFFFF;
-      font-family: Helvetica, Arial, FreeSans, san-serif;
-      color: #ffffff;
+      font-family:"Lucida Grande", Tahoma, Arial, Verdana, sans-serif;
+      color: #000;
+      font-style: sans-serif;
     }
     #container {
       margin: 0 auto;
-      width: 700px;
+      width: 900px;
     }
     h1 { font-size: 3.8em; color: #53b2bb; margin-bottom: 3px; }
     h1 .small { font-size: 0.4em; }
@@ -22,7 +23,7 @@
     h2 { font-size: 1.5em; color: #53b2bb; }
     h3 { text-align: center; color: #53b2bb; }
     a { color: #53b2bb; }
-    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
+    .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; }
     .download { float: right; }
     pre { background: #000; color: #fff; padding: 15px;}
     hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
@@ -34,42 +35,81 @@
   <a href="http://github.com/kimoto/Gauss"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
   <div id="container">
-
     <div class="download">
+	    <!--
       <a href="http://github.com/kimoto/Gauss/zipball/master">
         <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
       <a href="http://github.com/kimoto/Gauss/tarball/master">
         <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
+-->
     </div>
 
-    <h1><a href="http://github.com/kimoto/Gauss">Gauss</a>
-      <span class="small">by <a href="http://github.com/kimoto">kimoto</a></span></h1>
+    <h1><a href="http://github.com/kimoto/Gauss">Gauss</a> <img src="images/gauss.png"></h1>
+    <!--  <span class="small">by <a href="http://github.com/kimoto">kimoto</a></span> -->
 
     <div class="description">
-      Monitor Gamma Controller
+	    モニタの明るさを変更するソフトウェアです。(正確に言えば少し違いますが)主にFPSゲーマー向けで、暗いところを明るくするという目的のために作成しています。<br />
+	    <br />
+	    ガンマを変更すると以下の画像のように暗いところが見やすくなります。
+	    <!-- 表示します -->
+	    <img src="images/sample_gamma1.png">
+	    <img src="images/sample_gamma2.png"><br />
     </div>
 
-    <h2>Authors</h2>
-<p>kimoto (sub+peerler@gmail.com)<br/><br/>      </p>
-<h2>Contact</h2>
-<p>kimoto (sub+peerler@gmail.com)<br/>      </p>
-
-
-    <h2>Download</h2>
+    <h2>ダウンロード</h2>
     <p>
-      You can download this project in either
-      <a href="http://github.com/kimoto/Gauss/zipball/master">zip</a> or
-      <a href="http://github.com/kimoto/Gauss/tarball/master">tar</a> formats.
+    Windows7(32/64bit): <a href="#link">Gauss.zip</a>
     </p>
-    <p>You can also clone the project with <a href="http://git-scm.com">Git</a>
-      by running:
+
+    <!--
+    <p>
+      ソースコード:
+      <a href="http://github.com/kimoto/Gauss/zipball/master">zip</a> or
+      <a href="http://github.com/kimoto/Gauss/tarball/master">tar</a>
+    </p>
+
+    <p>
+    ※<a href="http://git-scm.com">Git</a>を使えばプロジェクトを複製することもできます
       <pre>$ git clone git://github.com/kimoto/Gauss</pre>
     </p>
+    -->
+
+    <h2>特徴</h2>
+    <ul>
+	    <li>モニタの明るさ(ガンマ値)を変更出来る</li>
+	    <li><strong>キーボードショートカット</strong>で明るさを上げたり下げたりできる</li>
+	    <li>デフォルトはCtrl + PageUpで明るさアップ、Ctrl + PageDownで明るさダウン、Ctrl + Resetで初期状態(変更可能)</li>
+	    <li>
+	    	マルチモニタ環境では<strong>モニタごとに明るさを設定可能</strong><br />
+	    	モニタ1とモニタ2に違う明るさ設定ができる。たとえばモニタ2だけ明るくしたいとか等に使います
+	    </li>
+	    <li>
+	    	デスクトップに現在の明るさ設定を保存したショートカットを作成可能<br />
+	    	作成したものをダブルクリックですぐにその設定に変更することが出来ます
+	    </li>
+    </ul>
+    
+    <h2>今後の機能追加予定</h2>
+    <ul>
+	    <li>
+	    暗部補正機能(2011/5月中予定)<br>
+明るい部分はそのままに、本当に暗いところだけ補正してくれるような機能を作る。
+暗部判定する範囲はユーザーが指定できるようにする予定 
+
+	    </li>
+    </ul>
+
+    <h2>使い方</h2>
+	<p>
+	    タスクトレイに常駐するので右クリックメニューから詳細な設定を行います<br />
+	    <img src="images/gamma_gui.png"><br />
+		<br />
+		執筆中です...
+	</p>
 
     <div class="footer">
-      get the source code on GitHub : <a href="http://github.com/kimoto/Gauss">kimoto/Gauss</a>
+      Author: kimoto (peerler at gmail dot com)
     </div>
-
   </div>
 
   <script type="text/javascript">
