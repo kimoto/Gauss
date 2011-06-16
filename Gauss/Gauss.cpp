@@ -1115,7 +1115,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	HMENU hMenu = NULL;
 	HMENU hSubMenu = NULL;
 	static UINT wm_taskbarCreated;
-	HMENU hView;
 	MENUITEMINFO mii;
 	static UINT_PTR timer = NULL;
 	static HWND hTool;
@@ -1143,7 +1142,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch(lParam){
 		case WM_LBUTTONDOWN:
 			// シングルクリックで中断 <-> 再開
-			stopOrResume(hWnd);
+      if(!g_hGammaDlg)
+        g_hGammaDlg = CreateDialog(hInst, TEXT("IDD_GAMMA_DIALOG"), hWnd, &DlgGammaProc);
 			break;
 		case WM_LBUTTONDBLCLK:
 			break;
@@ -1170,14 +1170,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				  mii.wID = IDM_MONITOR + i;
 				  InsertMenuItem(hSubMenu, i, TRUE, &mii);
         }
-        /*
-				for(int i=0; i<gammaController.monitorGetCount(); i++){
-					mii.fMask = MIIM_FTYPE | MIIM_STRING | MIIM_ID;
-					mii.dwTypeData = gammaController.monitorGet(i)->monitorName;
-					mii.wID = IDM_MONITOR + i; // 2500 - 2600 reserved for monitors
-					InsertMenuItem(hView, i, TRUE, &mii);
-				}
-        */
 			}
 
 			// カーソルの現在位置を取得
