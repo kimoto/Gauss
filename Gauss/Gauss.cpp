@@ -1162,21 +1162,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			// モニタが複数あったら、モニタごとの調整メニューを表示するように
 			if( gammaController.hasMultiMonitor() ){
-				hView = CreatePopupMenu();
-				mii.wID = IDM_MONITOR;
-				mii.cbSize = sizeof(MENUITEMINFO);
-				mii.fMask = MIIM_FTYPE | MIIM_STRING | MIIM_SUBMENU;
-				mii.fType = MFT_STRING;
-				mii.hSubMenu = hView;
-				mii.dwTypeData = L"モニタ別調節";
-				InsertMenuItem(hSubMenu, 0, TRUE, &mii);
-
+				for(int i=0; i<gammaController.monitorGetCount(); i++){
+				  mii.cbSize = sizeof(MENUITEMINFO);
+          mii.fType = MFT_STRING;
+          mii.fMask = MIIM_FTYPE | MIIM_STRING | MIIM_ID;
+          mii.dwTypeData = ::sprintf_alloc(L"%s調節", gammaController.monitorGet(i)->monitorName);
+				  mii.wID = IDM_MONITOR + i;
+				  InsertMenuItem(hSubMenu, i, TRUE, &mii);
+        }
+        /*
 				for(int i=0; i<gammaController.monitorGetCount(); i++){
 					mii.fMask = MIIM_FTYPE | MIIM_STRING | MIIM_ID;
 					mii.dwTypeData = gammaController.monitorGet(i)->monitorName;
 					mii.wID = IDM_MONITOR + i; // 2500 - 2600 reserved for monitors
 					InsertMenuItem(hView, i, TRUE, &mii);
 				}
+        */
 			}
 
 			// カーソルの現在位置を取得
