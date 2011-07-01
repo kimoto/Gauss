@@ -24,98 +24,83 @@ LANGUAGE 17, 1
 #include <richedit.h>
 #include "resource.h"
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// アイコン
-//
+  /////////////////////////////////////////////////////////////////////////////
+  //
+  // アイコン
+  //
 
-// アプリケーションのアイコンをすべてのシステム上で維持するために、最も小さい
-// ID 値のアイコンが最初に配置されます。
+  // アプリケーションのアイコンをすべてのシステム上で維持するために、最も小さい
+  // ID 値のアイコンが最初に配置されます。
 
-IDI_GANMACHANGER       ICON         "taiyou.ico"
-IDI_GANMACHANGER_STOP	ICON		"taiyou_stop.ico"
-IDI_SMALL               ICON         "small.ico"
+  IDI_GANMACHANGER       ICON         "taiyou.ico"
+  IDI_GANMACHANGER_STOP	ICON		"taiyou_stop.ico"
+  IDI_SMALL               ICON         "small.ico"
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// メニュー
-//
+  /////////////////////////////////////////////////////////////////////////////
+  //
+  // メニュー
+  //
 
-IDC_GANMACHANGER MENU
-BEGIN
-    POPUP "ファイル(&F)"
-    BEGIN
-        MENUITEM "アプリケーションの終了(&X)",                IDM_EXIT
-    END
-    POPUP "ヘルプ(&H)"
-    BEGIN
-        MENUITEM "バージョン情報(&A)...",           IDM_ABOUT
-    END
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// アクセラレータ
-//
-
-IDC_GANMACHANGER ACCELERATORS
-BEGIN
-    "?",            IDM_ABOUT,              ASCII,  ALT
-    "/",            IDM_ABOUT,              ASCII,  ALT
-END
+  LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+  IDC_GANMACHANGER MENU
+  BEGIN
+  POPUP "ファイル(&F)"
+  BEGIN
+  MENUITEM "アプリケーションの終了(&X)",                IDM_EXIT
+  END
+  POPUP "ヘルプ(&H)"
+  BEGIN
+  MENUITEM "バージョン情報(&A)...",           IDM_ABOUT
+  END
+  END
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// ダイアログ
-//
+  /////////////////////////////////////////////////////////////////////////////
+  //
+  // アクセラレータ
+  //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "バージョン情報 GanmaChanger"
-FONT 9, "MS UI Gothic"
-BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,14,14,21,20
-    LTEXT           "GanmaChanger, Version 1.0",IDC_STATIC,42,14,114,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 2011",IDC_STATIC,42,26,114,8
-    DEFPUSHBUTTON   "OK",IDOK,113,41,50,14,WS_GROUP
-END
+  IDC_GANMACHANGER ACCELERATORS
+  BEGIN
+  "?",            IDM_ABOUT,              ASCII,  ALT
+  "/",            IDM_ABOUT,              ASCII,  ALT
+  END
 
-//
-// Dialog resources
-//
-/*
-LANGUAGE 0, SUBLANG_NEUTRAL
-IDD_DIALOG1 DIALOG 0, 0, 130, 60
-STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
-CAPTION "明るさ調節(1 - 255)"
-FONT 8, "MS UI Gothic"
+
+  /////////////////////////////////////////////////////////////////////////////
+  //
+  // ダイアログ
+  //
+
+  LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+  IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
+  STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+  CAPTION "バージョン情報 GanmaChanger"
+  FONT 9, "MS UI Gothic"
+  BEGIN
+  ICON            IDR_MAINFRAME,IDC_STATIC,14,14,21,20
+  LTEXT           "GanmaChanger, Version 1.0",IDC_STATIC,42,14,114,8,SS_NOPREFIX
+  LTEXT           "Copyright (C) 2011",IDC_STATIC,42,26,114,8
+  DEFPUSHBUTTON   "OK",IDOK,113,41,50,14,WS_GROUP
+  END
+
+  LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+  IDD_GAMMA_DIALOG DIALOG 0, 0, 225, 126
+  STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
+  CAPTION "全体のガンマ調節"
+  FONT 8, "Ms Shell Dlg"
 {
-    EDITTEXT        IDC_BRIGHTNESS_LEVEL, 8, 7, 50, 14, ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "適用", IDOK, 80, 7, 35, 14
-    PUSHBUTTON      "閉じる", IDCANCEL, 80, 24, 36, 14
-	PUSHBUTTON      "デフォルト", IDDEFAULT, 80, 41, 36, 14
-}
-*/
-
-LANGUAGE 0, SUBLANG_NEUTRAL
-IDD_GAMMA_DIALOG DIALOG 0, 0, 225, 126
-STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
-CAPTION "全体のガンマ調節"
-FONT 8, "Ms Shell Dlg"
-{
-    EDITTEXT        IDC_BRIGHTNESS_LEVEL, 14, 12, 22, 14, ES_AUTOHSCROLL
+  EDITTEXT        IDC_BRIGHTNESS_LEVEL, 14, 12, 22, 14, ES_AUTOHSCROLL
     DEFPUSHBUTTON   "OK", IDOK, 162, 5, 54, 16
     //PUSHBUTTON      "閉じる", IDCANCEL, 162, 22, 54, 16
-	PUSHBUTTON      "デフォルト", IDDEFAULT, 162, 22, 54, 16
-	//PUSHBUTTON      "デフォルト", IDDEFAULT, 162, 39, 55, 16
+    PUSHBUTTON      "デフォルト", IDDEFAULT, 162, 22, 54, 16
+    //PUSHBUTTON      "デフォルト", IDDEFAULT, 162, 39, 55, 16
     PUSHBUTTON      "ショートカット作成", IDSHORTCUT, 162, 39, 54, 16
 
 
     CONTROL         "Gamma", IDC_SLIDER_GAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 10, 97, 16
 
-	CONTROL         "R-Gamma", IDC_SLIDER_RGAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 50, 97, 16
+    CONTROL         "R-Gamma", IDC_SLIDER_RGAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 50, 97, 16
     EDITTEXT        IDC_EDIT_RGAMMA, 14, 52, 22, 14, ES_AUTOHSCROLL
     CONTROL         "G-Gamma", IDC_SLIDER_GGAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 74, 97, 16
     EDITTEXT        IDC_EDIT_GGAMMA, 14, 76, 22, 14, ES_AUTOHSCROLL
@@ -124,29 +109,76 @@ FONT 8, "Ms Shell Dlg"
     GROUPBOX        "RGB別", IDC_STATIC, 4, 38, 141, 85
 }
 
-LANGUAGE 0, SUBLANG_NEUTRAL
-IDD_KEYCONFIG_DIALOG DIALOG 0, 0, 200, 85
-STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
-CAPTION "キー設定" // このWINDOW TITLEはプログラム側で変更されてるので無視されます
-FONT 8, "Ms Shell Dlg"
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+  IDD_GAMMA_DIALOG DIALOG 0, 0, 225, 126
+  STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
+  CAPTION "Gamma Turning"
+  FONT 8, "Ms Shell Dlg"
 {
-    DEFPUSHBUTTON   "OK", IDOK, 145, 10, 50, 16
-    PUSHBUTTON      "キャンセル", IDCANCEL, 145, 27, 50, 16
-	PUSHBUTTON      "デフォルト", IDDEFAULT, 145, 44, 50, 16
+  EDITTEXT        IDC_BRIGHTNESS_LEVEL, 14, 12, 22, 14, ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK", IDOK, 162, 5, 54, 16
+    //PUSHBUTTON      "閉じる", IDCANCEL, 162, 22, 54, 16
+    PUSHBUTTON      "Default", IDDEFAULT, 162, 22, 54, 16
+    //PUSHBUTTON      "デフォルト", IDDEFAULT, 162, 39, 55, 16
+    PUSHBUTTON      "Shortcut", IDSHORTCUT, 162, 39, 54, 16
 
-	LTEXT           "明るくする", IDC_STATIC, 10, 13, 29, 8, SS_LEFT
-	EDITTEXT        IDC_EDIT_KEYBIND_LIGHTUP, 45, 11, 60, 16, ES_AUTOHSCROLL | ES_READONLY
-	PUSHBUTTON      "設定", ID_KEYBIND_LIGHTUP, 110, 10, 30, 16
-	
-	LTEXT           "暗くする", IDC_STATIC, 10, 33, 24, 8, SS_LEFT
-    EDITTEXT        IDC_EDIT_KEYBIND_LIGHTDOWN, 45, 30, 60, 16, ES_AUTOHSCROLL | ES_READONLY
-	PUSHBUTTON      "設定", ID_KEYBIND_LIGHTDOWN, 110, 30, 30, 16
-	
-    LTEXT           "リセット", IDC_STATIC, 10, 54, 20, 8, SS_LEFT
-    EDITTEXT        IDC_EDIT_KEYBIND_LIGHTRESET, 45, 51, 60, 16, ES_AUTOHSCROLL | ES_READONLY
-	PUSHBUTTON      "設定", ID_KEYBIND_LIGHTRESET,110, 50, 30, 16
+
+    CONTROL         "Gamma", IDC_SLIDER_GAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 10, 97, 16
+
+    CONTROL         "R-Gamma", IDC_SLIDER_RGAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 50, 97, 16
+    EDITTEXT        IDC_EDIT_RGAMMA, 14, 52, 22, 14, ES_AUTOHSCROLL
+    CONTROL         "G-Gamma", IDC_SLIDER_GGAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 74, 97, 16
+    EDITTEXT        IDC_EDIT_GGAMMA, 14, 76, 22, 14, ES_AUTOHSCROLL
+    CONTROL         "B-Gamma", IDC_SLIDER_BGAMMA, TRACKBAR_CLASS, WS_TABSTOP | TBS_BOTH | TBS_NOTICKS, 39, 96, 97, 16
+    EDITTEXT        IDC_EDIT_BGAMMA, 14, 98, 22, 14, ES_AUTOHSCROLL
+    GROUPBOX        "RGB", IDC_STATIC, 4, 38, 141, 85
 }
 
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+  IDD_KEYCONFIG_DIALOG DIALOG 0, 0, 200, 85
+  STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
+  CAPTION "キー設定" // このWINDOW TITLEはプログラム側で変更されてるので無視されます
+  FONT 8, "Ms Shell Dlg"
+{
+  DEFPUSHBUTTON   "OK", IDOK, 145, 10, 50, 16
+    //PUSHBUTTON      "キャンセル", IDCANCEL, 145, 27, 50, 16
+    PUSHBUTTON      "デフォルト", IDDEFAULT, 145, 27, 50, 16
+
+    LTEXT           "明るくする", IDC_STATIC, 10, 13, 29, 8, SS_LEFT
+    EDITTEXT        IDC_EDIT_KEYBIND_LIGHTUP, 45, 11, 60, 16, ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "設定", ID_KEYBIND_LIGHTUP, 110, 10, 30, 16
+
+    LTEXT           "暗くする", IDC_STATIC, 10, 33, 24, 8, SS_LEFT
+    EDITTEXT        IDC_EDIT_KEYBIND_LIGHTDOWN, 45, 30, 60, 16, ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "設定", ID_KEYBIND_LIGHTDOWN, 110, 30, 30, 16
+
+    LTEXT           "リセット", IDC_STATIC, 10, 54, 20, 8, SS_LEFT
+    EDITTEXT        IDC_EDIT_KEYBIND_LIGHTRESET, 45, 51, 60, 16, ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "設定", ID_KEYBIND_LIGHTRESET,110, 50, 30, 16
+}
+
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+  IDD_KEYCONFIG_DIALOG DIALOG 0, 0, 200, 85
+  STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_SYSMENU
+  CAPTION "Key Config" // このWINDOW TITLEはプログラム側で変更されてるので無視されます
+  FONT 8, "Ms Shell Dlg"
+{
+  DEFPUSHBUTTON   "OK", IDOK, 145, 10, 50, 16
+    //PUSHBUTTON      "Cancel", IDCANCEL, 145, 27, 50, 16
+    PUSHBUTTON      "Default", IDDEFAULT, 145, 27, 50, 16
+
+    LTEXT           "Up", IDC_STATIC, 10, 13, 29, 8, SS_LEFT
+    EDITTEXT        IDC_EDIT_KEYBIND_LIGHTUP, 45, 11, 60, 16, ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Set", ID_KEYBIND_LIGHTUP, 110, 10, 30, 16
+
+    LTEXT           "Down", IDC_STATIC, 10, 33, 24, 8, SS_LEFT
+    EDITTEXT        IDC_EDIT_KEYBIND_LIGHTDOWN, 45, 30, 60, 16, ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Set", ID_KEYBIND_LIGHTDOWN, 110, 30, 30, 16
+
+    LTEXT           "Reset", IDC_STATIC, 10, 54, 20, 8, SS_LEFT
+    EDITTEXT        IDC_EDIT_KEYBIND_LIGHTRESET, 45, 51, 60, 16, ES_AUTOHSCROLL | ES_READONLY
+    PUSHBUTTON      "Set", ID_KEYBIND_LIGHTRESET,110, 50, 30, 16
+}
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -155,76 +187,123 @@ FONT 8, "Ms Shell Dlg"
 
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO
-BEGIN
-    IDD_ABOUTBOX, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 163
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 55
-    END
-END
+  BEGIN
+  IDD_ABOUTBOX, DIALOG
+  BEGIN
+  LEFTMARGIN, 7
+  RIGHTMARGIN, 163
+  TOPMARGIN, 7
+  BOTTOMMARGIN, 55
+  END
+  END
 #endif    // APSTUDIO_INVOKED
 
 #ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
-1 TEXTINCLUDE
-BEGIN
-    "resource.h\0"
-END
+  /////////////////////////////////////////////////////////////////////////////
+  //
+  // TEXTINCLUDE
+  //
+  1 TEXTINCLUDE
+  BEGIN
+  "resource.h\0"
+  END
 
-2 TEXTINCLUDE
-BEGIN
-    "#ifndef APSTUDIO_INVOKED\r\n"
-    "#include ""targetver.h""\r\n"
-    "#endif\r\n"
-    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
-    "#include ""windows.h""\r\n"
-    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
-    "\0"
-END
+  2 TEXTINCLUDE
+  BEGIN
+  "#ifndef APSTUDIO_INVOKED\r\n"
+  "#include ""targetver.h""\r\n"
+  "#endif\r\n"
+  "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+  "#include ""windows.h""\r\n"
+  "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+  "\0"
+  END
 
-3 TEXTINCLUDE
-BEGIN
-    "\r\n"
-    "\0"
-END
+  3 TEXTINCLUDE
+  BEGIN
+  "\r\n"
+  "\0"
+  END
 
 #endif    // APSTUDIO_INVOKED
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// ストリング テーブル
-//
+  /////////////////////////////////////////////////////////////////////////////
+  //
+  // ストリング テーブル
+  //
 
-STRINGTABLE
-BEGIN
-   IDC_GANMACHANGER   "GANMACHANGER"
-   IDS_APP_TITLE       "GanmaChanger"
-END
+  LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+  STRINGTABLE
+  BEGIN
+  IDC_GANMACHANGER   "GANMACHANGER"
+  IDS_APP_TITLE       "GanmaChanger"
+  IDS_MONITOR_CONTROL_MENU_FORMAT L"%s調節"
+  IDS_MONITOR_CONTROL_NAME_FORMAT L"モニタ%d"
+  IDS_INVALID_ARGUMENT_FORMAT "引数の指定に問題があります: %s"
+  IDS_INVALID_ARGUMENT_NUMBER_FORMAT "引数の数に問題があります: %d"
+  IDS_KEYCONFIG_BUTTON_NAME_SET "設定"
+  IDS_KEYCONFIG_BUTTON_NAME_INPUT "入力"
+  IDS_KEYCONFIG_DEFAULT_WINDOW_TITLE "キー設定"
+  IDS_KEYCONFIG_INPUT_WINDOW_TITLE "何かキーを入力してください"
+  IDS_SHORTCUT_LINK_FORMAT "%s\\ガンマ %s R%.2fG%.2fB%.2f.lnk"
+  IDS_SHORTCUT_LINK_FORMAT_RGB "%s\\ガンマ R%.2fG%.2fB%.2f.lnk"
+  IDS_MONITOR_GAMMA_WINDOW_TITLE_FORMAT "%sのガンマ調整"
+  IDS_TASKTRAY_TOOLTIP_TEXT "Gauss - ガンマ変更ソフト"
+  END
+
+  LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+  STRINGTABLE
+  BEGIN
+  IDC_GANMACHANGER   "GANMACHANGER"
+  IDS_APP_TITLE       "GanmaChanger"
+  IDS_MONITOR_CONTROL_MENU_FORMAT L"%s"
+  IDS_MONITOR_CONTROL_NAME_FORMAT L"Monitor%d"
+  IDS_INVALID_ARGUMENT_FORMAT "invalid argument: %s"
+  IDS_INVALID_ARGUMENT_NUMBER_FORMAT "invalid argument count: %s"
+  IDS_KEYCONFIG_BUTTON_NAME_SET "Set"
+  IDS_KEYCONFIG_BUTTON_NAME_INPUT "Input"
+  IDS_KEYCONFIG_DEFAULT_WINDOW_TITLE "Key Config"
+  IDS_KEYCONFIG_INPUT_WINDOW_TITLE "Please input any key..."
+  IDS_SHORTCUT_LINK_FORMAT "%s\\Gamma %s R%.2fG%.2fB%.2f.lnk"
+  IDS_SHORTCUT_LINK_FORMAT_RGB "%s\\Gamma R%.2fG%.2fB%.2f.lnk"
+  IDS_MONITOR_GAMMA_WINDOW_TITLE_FORMAT "%s - Gamma Turning"
+  IDS_TASKTRAY_TOOLTIP_TEXT "Gauss - Gamma Controller"
+  END
 
 #endif
-/////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////
 
-
-IDR_MENU MENU {
-	POPUP "dummy text"
-	{
-		//MENUITEM "モニタ", IDM_MONITOR;
-		//MENUITEM "明るさ調節", IDM_CONTROL;
-		MENUITEM "全体調整", IDM_GAMMA_CONTROL;
-		//MENUITEM "ショートカット作成", IDM_SHORTCUT;
-		MENUITEM "リセット", IDM_RESET;
-		MENUITEM "キー設定", IDM_KEYBOARD;
-		//MENUITEM "中断", IDM_STOP;
-		//MENUITEM "ポケモンフラッシュ(開始/中断)", IDM_POCKEMON;
-		MENUITEM "終了", IDM_EXIT;
-	}
+  LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+  IDR_MENU MENU {
+    POPUP "dummy text"
+    {
+      //MENUITEM "モニタ", IDM_MONITOR;
+      //MENUITEM "明るさ調節", IDM_CONTROL;
+      MENUITEM "全体調整", IDM_GAMMA_CONTROL;
+      //MENUITEM "ショートカット作成", IDM_SHORTCUT;
+      MENUITEM "リセット", IDM_RESET;
+      MENUITEM "キー設定", IDM_KEYBOARD;
+      //MENUITEM "中断", IDM_STOP;
+      //MENUITEM "ポケモンフラッシュ(開始/中断)", IDM_POCKEMON;
+      MENUITEM "終了", IDM_EXIT;
+    }
 }
 
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+  IDR_MENU MENU {
+    POPUP "dummy text"
+    {
+      //MENUITEM "モニタ", IDM_MONITOR;
+      //MENUITEM "明るさ調節", IDM_CONTROL;
+      MENUITEM "Turning", IDM_GAMMA_CONTROL;
+      //MENUITEM "ショートカット作成", IDM_SHORTCUT;
+      MENUITEM "Reset", IDM_RESET;
+      MENUITEM "Key Config", IDM_KEYBOARD;
+      //MENUITEM "中断", IDM_STOP;
+      //MENUITEM "ポケモンフラッシュ(開始/中断)", IDM_POCKEMON;
+      MENUITEM "Quit", IDM_EXIT;
+    }
+}
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

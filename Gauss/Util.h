@@ -84,6 +84,7 @@ void GetPrivateProfileKeyInfo(LPCTSTR section, LPCTSTR baseKeyName, KEYINFO *key
 void WritePrivateProfileKeyInfo(LPCTSTR section, LPCTSTR baseKeyName, KEYINFO *keyInfo, LPCTSTR configPath);
 void QuickSetKeyInfo(KEYINFO *info, int optKey, int key);
 LPTSTR GetKeyInfoString(KEYINFO *keyInfo);
+void LocaleErrorMsgBox(UINT msgId, ...);
 
 // 多重起動防止用簡易クラス
 #include <exception>

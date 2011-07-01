@@ -28,12 +28,6 @@ using namespace std;
 #pragma comment(lib, "KeyHook.lib")
 #endif
 
-/*
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
-*/
-
 // for x64 environment
 #ifdef _WIN64
 #undef GWL_HINSTANCE
@@ -43,17 +37,10 @@ using namespace std;
 #endif
 
 #define MUTEX_NAME L"Gauss"
-#define TASKTRAY_TOOLTIP_TEXT L"ガンマ値変更ツール"
 
 #define MAX_LOADSTRING 100
 #define WM_USER_MESSAGE (WM_USER+0x1000)
 #define SLIDER_SIZE ((int)((MAX_GAMMA - MIN_GAMMA) * 100)) // probablly 417
-
-#define DLG_KEYCONFIG_PROC_WINDOW_TITLE L"キー設定"
-#define DLG_KEYCONFIG_ASK L"キーを入力してください"
-#define DLG_KEYCONFIG_ASK_BUTTON_TITLE L"入力"
-#define DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE L"設定"
-#define DLG_MONITOR_GAMMA_WINDOW_TITLE_FORMAT L"%sのガンマ調節"
 
 // 複数のアイコンを識別するためのID定数
 #define ID_TRAYICON  (1)
@@ -117,14 +104,19 @@ BOOL CreateDesktopShortcutForMonitorGamma(int index, MonitorInfo *monitor)
 		return FALSE;
 	}
 
+  TCHAR linkFormat[MAX_PATH];
+  ::LoadString(::GetModuleHandle(NULL), IDS_SHORTCUT_LINK_FORMAT, linkFormat, sizeof(linkFormat));
+
 	TCHAR linkPath[MAX_PATH];
 	TCHAR gammaOption[MAX_PATH];
-	::_stprintf_s(linkPath, L"%s\\ガンマ %s R%.2fG%.2fB%.2f.lnk", desktopPath, monitor->monitorName, monitor->r, monitor->g, monitor->b);
+	::_stprintf_s(linkPath, linkFormat, desktopPath, monitor->monitorName, monitor->r, monitor->g, monitor->b);
 	::_stprintf_s(gammaOption, L"-monitor-gammaRGB Monitor%d=%.1f:%.1f:%.1f", index + 1, monitor->r, monitor->g, monitor->b);
-
+  
 	::CoInitialize(NULL);
 	BOOL result = CreateShortcut(szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
 	::CoUninitialize();
+  
+  ::MessageBeep(MB_ICONASTERISK);
 
 	return result;
 }
@@ -141,40 +133,26 @@ BOOL CreateDesktopShortcutForGammaRGB(double gammaR, double gammaG, double gamma
 		return FALSE;
 	}
 
+  TCHAR linkFormat[MAX_PATH];
+  ::LoadString(::GetModuleHandle(NULL), IDS_SHORTCUT_LINK_FORMAT_RGB, linkFormat, sizeof(linkFormat));
+
 	TCHAR linkPath[MAX_PATH];
 	TCHAR gammaOption[MAX_PATH];
-	::_stprintf_s(linkPath, L"%s\\ガンマ R%.2fG%.2fB%.2f.lnk", desktopPath, gammaR, gammaG, gammaB);
+	::_stprintf_s(linkPath, linkFormat, desktopPath, gammaR, gammaG, gammaB);
 	::_stprintf_s(gammaOption, L"-gammaRGB %.1f:%.1f:%.1f", gammaR, gammaG, gammaB);
 
 	::CoInitialize(NULL);
 	BOOL result = CreateShortcut(szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
 	::CoUninitialize();
 
+  ::MessageBeep(MB_ICONASTERISK);
+
 	return result;
 }
 
 BOOL CreateDesktopShortcutForGamma(double gamma)
 {
-	TCHAR desktopPath[MAX_PATH];
-	if( !::GetDesktopPath(desktopPath, MAX_PATH) )
-		return FALSE;
-
-	//実行中のプロセスのフルパス名を取得する
-	TCHAR szPath[MAX_PATH];
-	if( GetModuleFileName(NULL, (LPWSTR)szPath, sizeof(szPath)) == 0 ){
-		return FALSE;
-	}
-
-	TCHAR linkPath[MAX_PATH];
-	TCHAR gammaOption[MAX_PATH];
-	::_stprintf_s(linkPath, L"%s\\ガンマ%.2f.lnk", desktopPath, gamma);
-	::_stprintf_s(gammaOption, L"-gamma %.1f", gamma);
-
-	::CoInitialize(NULL);
-	BOOL result = CreateShortcut(szPath, gammaOption, desktopPath, 0, (LPCSTR)linkPath);
-	::CoUninitialize();
-
-	return result;
+  return CreateDesktopShortcutForGammaRGB(gamma, gamma, gamma);
 }
 
 BOOL CALLBACK MonitorEnumProc(
@@ -192,7 +170,10 @@ BOOL CALLBACK MonitorEnumProc(
 
 		HDC hDC = ::CreateDC(L"DISPLAY", stMonInfoEx.szDevice, NULL, NULL);
 		LPTSTR deviceName = sprintf_alloc(L"%s", stMonInfoEx.szDevice);
-		LPTSTR monitorName = sprintf_alloc(L"モニタ%d", gammaController.monitorGetCount() + 1);
+
+    TCHAR format[256];
+    ::LoadString(::GetModuleHandle(NULL), IDS_MONITOR_CONTROL_NAME_FORMAT, format, sizeof(format));
+		LPTSTR monitorName = sprintf_alloc(format, gammaController.monitorGetCount() + 1);
 
 		// 取得した情報を設定します
 		gammaController.monitorAdd(hDC, deviceName, monitorName);
@@ -340,7 +321,7 @@ void CommandLine_SetGammaRGB(LPTSTR input)
 
 	// 要素数があってることを確認
 	if(l.size() != 3){
-		::ErrorMessageBox(L"引数の指定に問題があります: %s", input);
+		::LocaleErrorMsgBox(IDS_INVALID_ARGUMENT_FORMAT, input);
 		exit(-1);
 	}
 
@@ -351,7 +332,7 @@ void CommandLine_SetGammaRGB(LPTSTR input)
 		double b = wstring2double(*it++);
 		gammaController.setGamma(r, g, b);
 	}catch(LPTSTR str){
-		::ErrorMessageBox(L"引数の指定に問題があります: %s", str);
+		::LocaleErrorMsgBox(IDS_INVALID_ARGUMENT_FORMAT, str);
 	}
 }
 
@@ -384,7 +365,7 @@ void CommandLine_SetMonitorGamma(LPTSTR input)
 		list<wstring>::iterator l = eql.begin();
 
 		if(eql.size() != 2){
-			::ErrorMessageBox(L"引数のフォーマットエラーです");
+			::LocaleErrorMsgBox(IDS_INVALID_ARGUMENT_FORMAT, input);
 			exit(-1);
 		}
 
@@ -418,7 +399,7 @@ void CommandLine_SetMonitorGammaRGB(LPTSTR input)
 		list<wstring>::iterator l = eql.begin();
 
 		if(eql.size() != 2){
-			::ErrorMessageBox(L"引数のフォーマットエラーです");
+			::LocaleErrorMsgBox(IDS_INVALID_ARGUMENT_FORMAT, input);
 			exit(-1);
 		}
 
@@ -491,7 +472,7 @@ void CommandLine_Parse()
 				}
 			}
 		}else{
-			::ErrorMessageBox(L"Format Error (2): 引数の数の問題");
+      ::LocaleErrorMsgBox(IDS_INVALID_ARGUMENT_NUMBER_FORMAT, nArgs);
 			exit(-1);
 		}
 
@@ -511,6 +492,14 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	// メモリリークの検出機能を有効化します
 	// 対象となるのはmallocなどの基本的な関数だけで、外部のglobalallocなどは対象ではないことに留意
 	//_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+  
+  // ロケールの設定
+  // 日本だったら日本語、それ以外はすべて英語
+  UINT localeId = GetUserDefaultLCID();
+  if(0x411 != localeId){
+    localeId = 0x409; // 日本語以外は英語UIとして表示する
+  }
+  ::SetThreadUILanguage(localeId);
 
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
@@ -614,7 +603,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	nid.hIcon            = LoadIcon(hInst, MAKEINTRESOURCE(IDI_GANMACHANGER));          // アイコン・ハンドル
 	nid.uID              = ID_TRAYICON;    // アイコン識別子の定数
 	nid.uCallbackMessage = WM_TASKTRAY;    // 通知メッセージの定数
-	lstrcpy( nid.szTip, TASKTRAY_TOOLTIP_TEXT );  // チップヘルプの文字列
+  ::LoadString(::GetModuleHandle(NULL), IDS_TASKTRAY_TOOLTIP_TEXT, nid.szTip, sizeof(nid.szTip));
 
 	// アイコンの変更
 	if( !Shell_NotifyIcon( NIM_ADD, (PNOTIFYICONDATAW)&nid ) )
@@ -803,10 +792,12 @@ INT_PTR CALLBACK DlgMonitorGammaProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		SLIDER_SETPOS(hDlg, IDC_SLIDER_BGAMMA, GAMMA_TO_SLIDER_POS(monitor->b));
 
 		// ウインドウのタイトルをどのモニタかわかるようなものに
-		::SetWindowTextFormat(hDlg, DLG_MONITOR_GAMMA_WINDOW_TITLE_FORMAT, monitor->monitorName);
+    TCHAR windowTitleFormat[256];
+    ::LoadString(::GetModuleHandle(NULL), IDS_MONITOR_GAMMA_WINDOW_TITLE_FORMAT, windowTitleFormat, sizeof(windowTitleFormat));
+		::SetWindowTextFormat(hDlg, windowTitleFormat, monitor->monitorName);
 
 		// 常に最前面に表示
-		::SetCursorPosToWindowTopMost(hDlg);(hDlg);
+		::SetCursorPosToWindowTopMost(hDlg);
 		return TRUE;
 
 	case WM_COMMAND:     // ダイアログボックス内の何かが選択されたとき
@@ -972,7 +963,9 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		resetKeyInfo = g_lightResetKeyInfo;
 
 		// ウインドウのタイトルを規定のものに設定します
-		::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
+    TCHAR windowTitle[256];
+    ::LoadString(::GetModuleHandle(NULL), IDS_KEYCONFIG_DEFAULT_WINDOW_TITLE, windowTitle, sizeof(windowTitle));
+		::SetWindowText(hDlg, windowTitle);
 		return TRUE;
 
 	case WM_KEYDOWN:
@@ -1016,25 +1009,28 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 		return TRUE;
 
 	case WM_KEYUP:
-		if(targetID == IDC_EDIT_KEYBIND_LIGHTUP){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE);
-			::UnhookWindowsHookEx(g_hKeyConfigHook);
-			::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
-			g_hKeyConfigHook = NULL;
+    if(targetID == IDC_EDIT_KEYBIND_LIGHTUP ||
+      targetID == IDC_EDIT_KEYBIND_LIGHTDOWN ||
+      targetID == IDC_EDIT_KEYBIND_LIGHTRESET){
+        UINT objectID = 0;
+        if(targetID == IDC_EDIT_KEYBIND_LIGHTUP){
+          objectID = ID_KEYBIND_LIGHTUP;
+        }else if(targetID == IDC_EDIT_KEYBIND_LIGHTDOWN){
+          objectID = ID_KEYBIND_LIGHTDOWN;
+        }else if(targetID == IDC_EDIT_KEYBIND_LIGHTRESET){
+          objectID = ID_KEYBIND_LIGHTRESET;
+        }
 
-		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTDOWN){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE);
-			::UnhookWindowsHookEx(g_hKeyConfigHook);
-			::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
-			g_hKeyConfigHook = NULL;
+        TCHAR buttonName[256];
+        ::LoadString(::GetModuleHandle(NULL), IDS_KEYCONFIG_BUTTON_NAME_SET, buttonName, sizeof(buttonName));
+        ::SetDlgItemText(hDlg, objectID, buttonName);
+			  ::UnhookWindowsHookEx(g_hKeyConfigHook);
 
-		}else if(targetID == IDC_EDIT_KEYBIND_LIGHTRESET){
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, DLG_KEYCONFIG_DEFAULT_BUTTON_TITLE);
-			::UnhookWindowsHookEx(g_hKeyConfigHook);
-			::SetWindowText(hDlg, DLG_KEYCONFIG_PROC_WINDOW_TITLE);
-			g_hKeyConfigHook = NULL;
-
-		}
+        TCHAR windowTitle[256];
+        ::LoadString(::GetModuleHandle(NULL), IDS_KEYCONFIG_DEFAULT_WINDOW_TITLE, windowTitle, sizeof(windowTitle));
+    	  ::SetWindowText(hDlg, windowTitle);
+			  g_hKeyConfigHook = NULL;
+    }
 		break;
 
 	case WM_COMMAND:     // ダイアログボックス内の何かが選択されたとき
@@ -1060,27 +1056,6 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			EndDialog(g_hKeyConfigDlg, LOWORD(wp));
 			g_hKeyConfigDlg = NULL;
 			break;
-		case ID_KEYBIND_LIGHTUP:
-			if(::g_hKeyConfigHook == NULL)
-				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
-			targetID = IDC_EDIT_KEYBIND_LIGHTUP;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTUP, DLG_KEYCONFIG_ASK_BUTTON_TITLE);
-			::SetWindowText(hDlg, DLG_KEYCONFIG_ASK);
-			break;
-		case ID_KEYBIND_LIGHTDOWN:
-			if(::g_hKeyConfigHook == NULL)
-				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
-			targetID = IDC_EDIT_KEYBIND_LIGHTDOWN;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTDOWN, DLG_KEYCONFIG_ASK_BUTTON_TITLE);
-			::SetWindowText(hDlg, DLG_KEYCONFIG_ASK);
-			break;
-		case ID_KEYBIND_LIGHTRESET:
-			if(::g_hKeyConfigHook == NULL)
-				g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
-			targetID = IDC_EDIT_KEYBIND_LIGHTRESET;
-			::SetDlgItemText(hDlg, ID_KEYBIND_LIGHTRESET, DLG_KEYCONFIG_ASK_BUTTON_TITLE);
-			::SetWindowText(hDlg, DLG_KEYCONFIG_ASK);
-			break;
 		case IDDEFAULT: // デフォルトボタンが押されたとき
 			// setup default key config
 			::QuickSetKeyInfo(&nextKeyInfo, VK_CONTROL, VK_PRIOR);
@@ -1090,6 +1065,33 @@ INT_PTR CALLBACK DlgKeyConfigProc(HWND hDlg, UINT msg, WPARAM wp, LPARAM lp)
 			// 現在のキー設定をGUIに反映します
 			SetCurrentKeyConfigToGUI(hDlg, &nextKeyInfo, &prevKeyInfo, &resetKeyInfo);
 			break;
+    default:
+      // ボタン個別の処理
+      UINT objectID = 0;
+      if(LOWORD(wp) == ID_KEYBIND_LIGHTUP){
+			  targetID = IDC_EDIT_KEYBIND_LIGHTUP;
+        objectID = ID_KEYBIND_LIGHTUP;
+      }else if(LOWORD(wp) == ID_KEYBIND_LIGHTDOWN){
+ 			  targetID = IDC_EDIT_KEYBIND_LIGHTDOWN;
+        objectID = ID_KEYBIND_LIGHTDOWN;
+      }else if(LOWORD(wp) == ID_KEYBIND_LIGHTRESET){
+ 			  targetID = IDC_EDIT_KEYBIND_LIGHTRESET;
+        objectID = ID_KEYBIND_LIGHTRESET;
+      }
+
+      // 各ボタン共通の処理
+      if(objectID != 0){
+        if(::g_hKeyConfigHook == NULL)
+				  g_hKeyConfigHook = ::SetWindowsHookEx(WH_KEYBOARD, KeyboardProc, NULL, GetWindowThreadProcessId(hDlg, NULL));
+
+        TCHAR windowTitle[256];
+        ::LoadString(::GetModuleHandle(NULL), IDS_KEYCONFIG_INPUT_WINDOW_TITLE, windowTitle, sizeof(windowTitle));
+			  ::SetWindowText(hDlg, windowTitle);
+
+        TCHAR buttonName[256];
+        ::LoadString(::GetModuleHandle(NULL), IDS_KEYCONFIG_BUTTON_NAME_INPUT, buttonName, sizeof(buttonName));
+        ::SetDlgItemText(hDlg, objectID, buttonName);
+      }
 		}
 		return TRUE;
 
@@ -1166,7 +1168,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				  mii.cbSize = sizeof(MENUITEMINFO);
           mii.fType = MFT_STRING;
           mii.fMask = MIIM_FTYPE | MIIM_STRING | MIIM_ID;
-          mii.dwTypeData = ::sprintf_alloc(L"%s調節", gammaController.monitorGet(i)->monitorName);
+          //mii.dwTypeData = ::sprintf_alloc(L"%s調節", gammaController.monitorGet(i)->monitorName);
+          
+          TCHAR format[256];
+          ::LoadString(::GetModuleHandle(NULL), IDS_MONITOR_CONTROL_MENU_FORMAT, format, sizeof(format));
+
+          mii.dwTypeData = ::sprintf_alloc(format, gammaController.monitorGet(i)->monitorName);
 				  mii.wID = IDM_MONITOR + i;
 				  InsertMenuItem(hSubMenu, i, TRUE, &mii);
         }
