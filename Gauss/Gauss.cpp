@@ -1253,16 +1253,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		DestroyMenu(hMenu);
 		hMenu = NULL;
 		break;
-	case WM_DESTROY:
-		SaveConfig();
-		StopHook();
 
+  case WM_NCDESTROY:
 		//::TasktrayDeleteIcon(hWnd, ID_TRAYICON);
-		::Shell_NotifyIcon(NIM_DELETE, &nid);
+		if(!::Shell_NotifyIcon(NIM_DELETE, &nid)){
+      ::ShowLastError();
+    }
 
 		SetMenu(hWnd, NULL);
 		DestroyMenu(hMenu);
 		hMenu = NULL;
+    break;
+
+	case WM_DESTROY:
+		SaveConfig();
+		StopHook();
+
 		PostQuitMessage(0);
 		break;
 	default:
