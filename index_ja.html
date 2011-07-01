@@ -39,75 +39,61 @@
        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
        })();
-</script>
-</head>
+     </script>
+   </head>
 
-<body>
-  <a href="http://github.com/kimoto/Gauss"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+   <body>
+     <a href="http://github.com/kimoto/Gauss"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
 
-  <div id="container">
-    <div class="download">
-    </div>
+     <div id="container">
+       <div class="download">
+       </div>
 
-    <h1><a href="http://github.com/kimoto/Gauss">Gauss</a> <img src="images/gauss.png"></h1>
+       <h1><a href="http://github.com/kimoto/Gauss">Gauss</a> <img src="images/gauss.png"></h1>
 
-    <div class="description">
-      <a href="./index.html">English</a> / Japanese<br>
-      <br>
-      画面の明るさを変更するソフトウェアです。(正確に言えば少し違いますが)主にFPSゲーマー向けで、暗いところを明るくするという目的のために作成しています。<br />
-      <br />
-      設定を変更すると以下の画像のように暗いところが見やすくなります。(画像はイメージです)<br>
-      <br>
-      <!-- 表示します -->
-      <img src="images/sample_gamma1.png">
-      <img src="images/sample_gamma2.png"><br />
-    </div>
+       <div class="description">
+         <a href="./index.html">English</a> / Japanese<br>
+         <br>
+         画面の明るさを変更するソフトウェアです。<br>
+         主にFPSゲーマー向けで、設定を変更すると以下の画像のように暗いところが見やすくなります。<br>
+         <br>
+         <!-- 表示します -->
+         <img src="images/sample_gamma1.png">
+         <img src="images/sample_gamma2.png"><br />
+       </div>
 
-    <h2>ダウンロード</h2>
-    <ul>
-      <li>
-      Windows7(32/64bit): <a href="http://kimoto29.sakura.ne.jp/misc/Gauss(20110702).zip">Gauss(20110702).zip</a><br />
-      ※1: 動作確認しているのは上記環境だけですが、もしかしたら他の環境でも動作するかもしれません<br>
-      ※2: グラフィックボードがガンマ変更に対応していない場合動作しません
-      </li>
-    </ul>
+       <h2>特徴</h2>
+       <ul>
+         <li>モニタの明るさ(ガンマ値)を変更出来る</li>
+         <li>マルチモニタ環境では<strong>モニタごとに異なる明るさを設定可能</strong></li> 
+         <li><strong>キーボードショートカット</strong>対応<br>
+         デフォルトはCtrl + PageUpで明るさアップ、Ctrl + PageDownで明るさダウン、Ctrl + Resetで初期状態(変更可能)</li>
+         <li>
+         デスクトップに現在の明るさ設定を保存したショートカットを作成可能<br />
+         作成したものをダブルクリックですぐにその設定に変更することが出来ます
+         </li>
+       </ul>
 
-    <h2>特徴</h2>
-    <ul>
-      <li>モニタの明るさ(ガンマ値)を変更出来る</li>
-      <li><strong>キーボードショートカット</strong>で明るさを上げたり下げたりできる</li>
-      <li>デフォルトはCtrl + PageUpで明るさアップ、Ctrl + PageDownで明るさダウン、Ctrl + Resetで初期状態(変更可能)</li>
-      <li>
-      マルチモニタ環境では<strong>モニタごとに明るさを設定可能</strong><br />
-      <strong>モニタ1とモニタ2に違う明るさ設定ができる。</strong>たとえばモニタ2だけ明るくしたいとか等に使います
-      </li>
-      <li>
-      デスクトップに現在の明るさ設定を保存したショートカットを作成可能<br />
-      作成したものをダブルクリックですぐにその設定に変更することが出来ます
-      </li>
-    </ul>
+       <h2>使い方</h2>
+       <p>
+       起動するとタスクトレイに常駐しますので、右クリックメニューから詳細な設定を行ってください<br />
+       <img src="images/gamma_gui.png"><br />
+       <br />
+       執筆中です...
+       </p>
 
-    <h2>今後の機能追加予定</h2>
-    <ul>
-      <li>
-      暗部補正機能(2011/5月中予定)<br>
-      明るい部分はそのままに、本当に暗いところだけ補正してくれるような機能を作る。
-      暗部判定する範囲はユーザーが指定できるようにする予定 
+       <h2>ダウンロード</h2>
+       <ul>
+         <li>
+         Windows7(32/64bit): <a href="http://kimoto29.sakura.ne.jp/misc/Gauss(20110702).zip">Gauss(20110702).zip</a><br />
+         ※1: 動作確認しているのは上記環境だけですが、もしかしたら他の環境でも動作するかもしれません<br>
+         ※2: グラフィックボードがガンマ変更に対応していない場合動作しません
+         </li>
+       </ul>
 
-      </li>
-    </ul>
-
-    <h2>使い方</h2>
-    <p>
-    タスクトレイに常駐するので右クリックメニューから詳細な設定を行います<br />
-    <img src="images/gamma_gui.png"><br />
-    <br />
-    執筆中です...
-    </p>
-
-    <div class="footer">
-      Author: kimoto (peerler at gmail dot com)
-    </div>
-  </div>
-</body>
-</html>
+       <div class="footer">
+         Author: kimoto (peerler at gmail dot com)
+       </div>
+     </div>
+   </body>
+ </html>
