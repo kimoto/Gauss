@@ -170,13 +170,13 @@ BOOL CALLBACK MonitorEnumProc(
 
 		HDC hDC = ::CreateDC(L"DISPLAY", stMonInfoEx.szDevice, NULL, NULL);
 		LPTSTR deviceName = sprintf_alloc(L"%s", stMonInfoEx.szDevice);
-
+    
     TCHAR format[256];
     ::LoadString(::GetModuleHandle(NULL), IDS_MONITOR_CONTROL_NAME_FORMAT, format, sizeof(format));
 		LPTSTR monitorName = sprintf_alloc(format, gammaController.monitorGetCount() + 1);
 
 		// 取得した情報を設定します
-		gammaController.monitorAdd(hDC, deviceName, monitorName);
+    gammaController.monitorAdd(hDC, deviceName, monitorName, stMonInfoEx.rcMonitor);
 
 		return TRUE;
 }
@@ -1236,25 +1236,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
+
 	case WM_GAMMA_UP:
 		if( IF_KEY_PRESS(lParam) ){
-			trace(L"gamma up\n");
-			gammaController.increment();
+			gammaController.incrementAtCursorPos();
 		}
 		break;
+
 	case WM_GAMMA_DOWN:
 		if( IF_KEY_PRESS(lParam) ){
-			trace(L"gamma down\n");
-			gammaController.decrement();
+		  gammaController.decrementAtCursorPos();
 		}
 		break;
+
 	case WM_GAMMA_RESET:
 		if( IF_KEY_PRESS(lParam) ){
-			trace(L"gamma reset\n");
-			//gammaController.reset();
-			gammaController.resetMonitorDifference();
-		}
+      gammaController.resetMonitorAtCursorPos();
+    }
 		break;
+
 	case WM_CLOSE:
 		SetMenu(hWnd, NULL);
 		DestroyMenu(hMenu);

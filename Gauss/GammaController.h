@@ -31,6 +31,8 @@ typedef struct {
 
 	LPWSTR monitorName;	// モニタの名前
 	LPWSTR deviceName;	// モニタのデバイスパス
+
+  RECT rectangle; // モニタの領域
 } MonitorInfo;
 
 class GammaController
@@ -50,6 +52,7 @@ public:
 	bool setGamma(double r);
 	bool setMonitorGamma(HDC hdc, double r, double g, double b);
 	bool setMonitorGamma(HDC hdc, double gamma);
+  double correctGamma(double gamma);
 
 	// ========= monitor間のガンマ差を維持したまま操作できるAPI
 	bool reset();
@@ -59,14 +62,25 @@ public:
 	bool setMonitorGammaDifference(double r, double g, double b);
 	bool setMonitorGammaDifference(double gamma);
 
+  // ========= 指定された座標のモニタを対象にするAPI
+  int findMonitorAt(POINT *pt);
+  MonitorInfo *monitorGetAt(POINT *pt);
+	bool incrementAt(POINT *pt);
+  bool decrementAt(POINT *pt);
+  bool resetMonitorAt(POINT *pt);
+
+  bool incrementAtCursorPos();
+  bool decrementAtCursorPos();
+  bool resetMonitorAtCursorPos();
+
 	// ========= monitor関係のAPI
 	bool monitorAdd(MonitorInfo *monitor);
-	bool monitorAdd(HDC, LPTSTR, LPTSTR);
+	bool monitorAdd(HDC, LPTSTR, LPTSTR, RECT);
 	MonitorInfo *monitorGet(int index);
-	bool monitorReset();
+  bool monitorReset();
 	int monitorGetCount();
 	bool hasMultiMonitor(); // 現在の環境は複数のモニタを持っている?
-
+  
 	// ========== monitorのインデックス指定して操作する系API(推奨)
 	bool resetMonitor(int index);
 	bool setMonitorGammaIndex(int index, double r, double g, double b, double level);

@@ -165,13 +165,14 @@ bool GammaController::monitorAdd(MonitorInfo *monitor)
 	return true;
 }
 
-bool GammaController::monitorAdd(HDC hDC, LPTSTR deviceName, LPTSTR monitorName)
+bool GammaController::monitorAdd(HDC hDC, LPTSTR deviceName, LPTSTR monitorName, RECT rectangle)
 {
 	MonitorInfo monitor;
 	monitor.hDC = hDC;
 	monitor.deviceName = deviceName; // HDCに使えるデバイス名
 	monitor.monitorName = monitorName; // 人間向けデバイス名
 	monitor.r = monitor.g = monitor.b = monitor.level = GAMMA_DEFAULT_VALUE;
+  monitor.rectangle = rectangle;
 	return this->monitorAdd(&monitor);
 }
 
@@ -193,6 +194,15 @@ MonitorInfo *GammaController::monitorGet(int index)
 	return &this->m_monitors[index];
 }
 
+MonitorInfo *GammaController::monitorGetAt(POINT *pt)
+{
+  int n = this->findMonitorAt(pt);
+  if(n < 0){
+    return NULL;
+  }
+  return this->monitorGet(n);
+}
+
 int GammaController::monitorGetCount()
 {
 	return this->m_monitorIndex;
@@ -202,4 +212,65 @@ bool GammaController::hasMultiMonitor()
 {
 	//return true;
 	return (this->monitorGetCount() >= 2);
+}
+
+// return index
+int GammaController::findMonitorAt(POINT *pt)
+{
+  for(int i=0; i<this->monitorGetCount(); i++){
+    MonitorInfo *m = this->monitorGet(i);
+    if(m->rectangle.left <= pt->x && pt->x <= m->rectangle.right &&
+      m->rectangle.top <= pt->y && pt->y <= m->rectangle.bottom){
+        return i;
+    }
+  }
+  return -1;
+}
+
+bool GammaController::incrementAt(POINT *pt)
+{
+  MonitorInfo *m = this->monitorGetAt(pt);
+  m->level = correctGamma(m->level + GAMMA_INCREMENT_VALUE);
+  return this->setMonitorGamma(m->hDC, m->level);
+}
+
+bool GammaController::decrementAt(POINT *pt)
+{  
+  MonitorInfo *m = this->monitorGetAt(pt);
+  m->level = correctGamma(m->level - GAMMA_DECREMENT_VALUE);
+  return this->setMonitorGamma(m->hDC, m->level);
+}
+
+bool GammaController::resetMonitorAt(POINT *pt)
+{
+  MonitorInfo *m = this->monitorGetAt(pt);
+  m->level = correctGamma(DEFAULT_GAMMA);
+  return this->setMonitorGamma(m->hDC, m->level);
+}
+
+double GammaController::correctGamma(double gamma)
+{
+  if(gamma < GAMMA_MIN_VALUE)
+    gamma = GAMMA_MIN_VALUE;
+  if(GAMMA_MAX_VALUE < gamma)
+    gamma = GAMMA_MAX_VALUE;
+  return gamma;
+}
+
+bool GammaController::incrementAtCursorPos()
+{
+  POINT pt;
+  return ::GetCursorPos(&pt) ? this->incrementAt(&pt) : false;
+}
+
+bool GammaController::decrementAtCursorPos()
+{
+  POINT pt;
+  return ::GetCursorPos(&pt) ? this->decrementAt(&pt) : false;
+}
+
+bool GammaController::resetMonitorAtCursorPos()
+{
+  POINT pt;
+  return ::GetCursorPos(&pt) ? this->resetMonitorAt(&pt) : false;
 }
