@@ -210,6 +210,8 @@ void LoadConfig(void)
 	::g_gammaG = ::GetPrivateProfileDouble(L"Gamma", L"gammaG", DEFAULT_GAMMA, lpConfigPath);
 	::g_gammaB = ::GetPrivateProfileDouble(L"Gamma", L"gammaB", DEFAULT_GAMMA, lpConfigPath);
 
+  gammaController.m_darkCorrect = ::GetPrivateProfileBool(L"Gamma", L"darkCorrect", true, lpConfigPath);
+
 	// 起動時はガンマリセットする
 	// 前回終了時のガンマ設定に強制変更
 	// gammaController.setGamma(g_gammaR, g_gammaG, g_gammaB);
@@ -243,6 +245,8 @@ void SaveConfig(void)
 	::WritePrivateProfileDouble(L"Gamma", L"gammaR", ::g_gammaR, lpConfigPath);
 	::WritePrivateProfileDouble(L"Gamma", L"gammaG", ::g_gammaG, lpConfigPath);
 	::WritePrivateProfileDouble(L"Gamma", L"gammaB", ::g_gammaB, lpConfigPath);
+
+  ::WritePrivateProfileBool(L"Gamma", L"darkCorrect", gammaController.m_darkCorrect, lpConfigPath);
 
 	// モニタごとのガンマ値を保存する
 	// [Monitor1] = index 0
@@ -1139,10 +1143,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		// taskbar event
 		wm_taskbarCreated = RegisterWindowMessage(TEXT("TaskbarCreated"));
-
-    // 暗闇補正追加
-    gammaController.m_darkCorrect = true;
-		break;
+    break;
 	case WM_TASKTRAY:
 		switch(lParam){
 		case WM_LBUTTONDOWN:

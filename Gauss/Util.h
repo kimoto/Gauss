@@ -53,8 +53,10 @@ BOOL CreateShortcut ( LPCTSTR pszTargetPath /* ターゲットパス */,
     int nCmdShow /* ShowWindowの引数 */,
     LPCSTR pszShortcutPath /* ショートカットファイル(*.lnk)のパス */ );
 double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR path);
+bool GetPrivateProfileBool(LPCTSTR section, LPCTSTR key, bool def, LPCTSTR path);
 BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR path);
 BOOL WritePrivateProfileInt(LPCTSTR section, LPCTSTR key, int val, LPCTSTR path);
+BOOL WritePrivateProfileBool(LPCTSTR section, LPCTSTR key, bool val, LPCTSTR path);
 LPTSTR GetKeyNameTextEx(UINT vk);
 LPTSTR GetKeyConfigString(int vk, int opt_vk);
 void ErrorMessageBox(LPCTSTR message, ...);

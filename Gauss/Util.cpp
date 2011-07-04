@@ -383,6 +383,13 @@ double GetPrivateProfileDouble(LPCTSTR section, LPCTSTR key, double def, LPCTSTR
 	return ::_wtof(buf);
 }
 
+bool GetPrivateProfileBool(LPCTSTR section, LPCTSTR key, bool def, LPCTSTR path)
+{
+  UINT def_val = def ? 1 : 0;
+  UINT val = ::GetPrivateProfileInt(section, key, def_val, path);
+  return (val == 1) ? true : false;
+}
+
 BOOL WritePrivateProfileDouble(LPCTSTR section, LPCTSTR key, double val, LPCTSTR path)
 {
 	TCHAR buf[PROFILE_STRING_BUFFER_SIZE];
@@ -395,6 +402,15 @@ BOOL WritePrivateProfileInt(LPCTSTR section, LPCTSTR key, int val, LPCTSTR path)
 	TCHAR buf[PROFILE_STRING_BUFFER_SIZE];
 	::_stprintf_s(buf, L"%d", val);
 	return ::WritePrivateProfileString(section, key, buf, path);
+}
+
+BOOL WritePrivateProfileBool(LPCTSTR section, LPCTSTR key, bool val, LPCTSTR path)
+{
+  if(val){
+	  return ::WritePrivateProfileInt(section, key, 1, path);
+  }else{
+    return ::WritePrivateProfileInt(section, key, 0, path);
+  }
 }
 
 // 指定された仮想キーの文字列表現を
