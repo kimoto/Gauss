@@ -5,6 +5,7 @@
 
 #define GAMMA_INCREMENT_VALUE 0.1
 #define GAMMA_DECREMENT_VALUE 0.1
+
 #define GAMMA_DEFAULT_VALUE 1.0
 //#define GAMMA_MIN_VALUE 0.0
 #define GAMMA_MIN_VALUE 0.23
@@ -43,7 +44,9 @@ private:
 	MonitorInfo m_monitors[MAX_MONITOR_NUMBER];
 
 public:
-	// constructer & destructer
+  bool m_darkCorrect;
+  
+  // constructer & destructer
 	GammaController();
 	~GammaController();
 
@@ -53,6 +56,7 @@ public:
 	bool setMonitorGamma(HDC hdc, double r, double g, double b);
 	bool setMonitorGamma(HDC hdc, double gamma);
   double correctGamma(double gamma);
+  void GammaController::redraw();
 
 	// ========= monitorä‘ÇÃÉKÉìÉ}ç∑Çà€éùÇµÇΩÇ‹Ç‹ëÄçÏÇ≈Ç´ÇÈAPI
 	bool reset();

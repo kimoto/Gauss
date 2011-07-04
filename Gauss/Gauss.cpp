@@ -1139,6 +1139,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		// taskbar event
 		wm_taskbarCreated = RegisterWindowMessage(TEXT("TaskbarCreated"));
+
+    // 暗闇補正追加
+    gammaController.m_darkCorrect = true;
 		break;
 	case WM_TASKTRAY:
 		switch(lParam){
@@ -1161,6 +1164,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}else{
 				CheckMenuItem(hSubMenu, IDM_STOP, MF_BYCOMMAND | MF_UNCHECKED);
 			}
+
+      // 完全な黒を維持するオプションを表示
+      if(gammaController.m_darkCorrect){
+        CheckMenuItem(hSubMenu, IDM_DARKCORRECT, MF_BYCOMMAND | MF_CHECKED);
+      }else{
+        CheckMenuItem(hSubMenu, IDM_DARKCORRECT, MF_BYCOMMAND | MF_UNCHECKED);
+      }
 
 			// モニタが複数あったら、モニタごとの調整メニューを表示するように
 			if( gammaController.hasMultiMonitor() ){
@@ -1223,6 +1233,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if(!g_hKeyConfigDlg)
 				g_hKeyConfigDlg = CreateDialog(hInst, TEXT("IDD_KEYCONFIG_DIALOG"), hWnd, &DlgKeyConfigProc);
 			break;
+
+    case IDM_DARKCORRECT:
+      if(gammaController.m_darkCorrect){
+        gammaController.m_darkCorrect = FALSE;
+      }else{
+        gammaController.m_darkCorrect = TRUE;
+      }
+      gammaController.redraw();
+      //gammaController.incrementAtCursorPos();
+      //gammaController.decrement();
+      break;
 
 		default:
 			if(IDM_MONITOR <= wmId && wmId <= IDM_MONITOR + MAX_MONITOR_NUMBER){

@@ -1,32 +1,33 @@
 #include "stdafx.h"
 #include "GammaController.h"
 
+//==================================
+//  Utility Functions
+//==================================
 // モニタ個別にガンマを設定
 //#define MIN_GAMMA 0.23
 //#define MAX_GAMMA 4.40
-BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB)
+BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB, BOOL darkCorrect = FALSE)
 {
-	// 補正
-	/*
-	if(gammaR < MIN_GAMMA) gammaR = MIN_GAMMA;
-	if(gammaG < MIN_GAMMA) gammaG = MIN_GAMMA;
-	if(gammaB < MIN_GAMMA) gammaB = MIN_GAMMA;
-
-	if(gammaR > MAX_GAMMA) gammaR = MAX_GAMMA;
-	if(gammaG > MAX_GAMMA) gammaG = MAX_GAMMA;
-	if(gammaB > MAX_GAMMA) gammaB = MAX_GAMMA;
-	*/
 	gammaR = 1.0 / gammaR;
 	gammaG = 1.0 / gammaG;
 	gammaB = 1.0 / gammaB;
 
+  // WORD = char x 2 = 2byte = 16bit = 2の16乗 = 65536(0 - 65536)
 	WORD ramp[256*3];
 	for(int i=0; i<256; i++){
 		double valueR = pow((i + 1) / 256.0, gammaR) * 65536;
 		double valueG = pow((i + 1) / 256.0, gammaG) * 65536;
 		double valueB = pow((i + 1) / 256.0, gammaB) * 65536;
-		
-		if(valueR < 0) valueR = 0; if(valueR > 65535) valueR = 65535;
+
+    if(darkCorrect){
+      if(i <= 0){ // 完全な黒 = 最小の階調(i = 0) = のときはオリジナルのまま(= gamma 1.0)で描画する
+        double original_gamma = 1.0;
+        valueR = valueG = valueB = pow((i + 1) / 256.0, original_gamma) * 65536;
+      }
+    }
+
+    if(valueR < 0) valueR = 0; if(valueR > 65535) valueR = 65535;
 		if(valueG < 0) valueG = 0; if(valueG > 65535) valueG = 65535;
 		if(valueB < 0) valueB = 0; if(valueB > 65535) valueB = 65535;
 		
@@ -37,26 +38,29 @@ BOOL SetMonitorGamma(HDC hdc, double gammaR, double gammaG, double gammaB)
 	return !::SetDeviceGammaRamp(hdc, &ramp);
 }
 
-BOOL SetMonitorGamma(HDC hdc, double gamma)
+BOOL SetMonitorGamma(HDC hdc, double gamma, BOOL darkCorrect = FALSE)
 {
-	return SetMonitorGamma(hdc, gamma, gamma, gamma);
+  return SetMonitorGamma(hdc, gamma, gamma, gamma, darkCorrect);
 }
 
-// すべてのモニタ共通にガンマを設定
-BOOL SetGamma(double gammaR, double gammaG, double gammaB)
+BOOL SetMonitorGamma(double gammaR, double gammaG, double gammaB, BOOL darkCorrect = FALSE)
 {
-	return SetMonitorGamma(::GetDC(NULL), gammaR, gammaG, gammaB);
+  return SetMonitorGamma(::GetDC(NULL), gammaR, gammaG, gammaB, darkCorrect);
 }
 
-BOOL SetGamma(double gamma)
+BOOL SetMonitorGamma(double gamma, BOOL darkCorrect = FALSE)
 {
-	return SetGamma(gamma, gamma, gamma);
+  return SetMonitorGamma(::GetDC(NULL), gamma, gamma, gamma, darkCorrect);
 }
 
+//===========================================
+//  Implement GammaController Class
+//===========================================
 GammaController::GammaController()
 {
 	m_gamma = DEFAULT_GAMMA;
 	m_monitorIndex = 0;
+  m_darkCorrect = false;
 }
 
 GammaController::~GammaController()
@@ -64,9 +68,15 @@ GammaController::~GammaController()
 	this->monitorReset();
 }
 
+// ========= raw level interfaces
 bool GammaController::setGamma(double r, double g, double b)
 {
-	return (::SetGamma(r, g, b) == TRUE);
+  return (::SetMonitorGamma(r, g, b, this->m_darkCorrect) == TRUE);
+}
+
+bool GammaController::setMonitorGamma(HDC hdc, double r, double g, double b)
+{
+	return (::SetMonitorGamma(hdc, r, g, b, this->m_darkCorrect) == TRUE);
 }
 
 bool GammaController::setGamma(double gamma)
@@ -75,15 +85,11 @@ bool GammaController::setGamma(double gamma)
 	return this->setGamma(gamma, gamma, gamma);
 }
 
-bool GammaController::setMonitorGamma(HDC hdc, double r, double g, double b)
-{
-	return (::SetMonitorGamma(hdc, r, g, b) == TRUE);
-}
-
 bool GammaController::setMonitorGamma(HDC hdc, double gamma)
 {
 	return (this->setMonitorGamma(hdc, gamma, gamma, gamma) == TRUE);
 }
+// =========== raw level interfaces end.
 
 bool GammaController::reset()
 {
@@ -135,6 +141,11 @@ bool GammaController::setMonitorGammaDifference(double gammaR, double gammaG, do
 			m_monitors[i].b + b);
 	}
 	return TRUE;
+}
+
+void GammaController::redraw()
+{
+  this->setMonitorGammaDifference(this->m_gamma, this->m_gamma, this->m_gamma);
 }
 
 bool GammaController::setMonitorGammaDifference(double gamma)
@@ -230,22 +241,22 @@ int GammaController::findMonitorAt(POINT *pt)
 bool GammaController::incrementAt(POINT *pt)
 {
   MonitorInfo *m = this->monitorGetAt(pt);
-  m->level = correctGamma(m->level + GAMMA_INCREMENT_VALUE);
-  return this->setMonitorGamma(m->hDC, m->level);
+  m->level = m->r = m->g = m->b = correctGamma(m->r + GAMMA_INCREMENT_VALUE); // R based
+  return this->setMonitorGamma(m->hDC, m->r, m->g, m->b);
 }
 
 bool GammaController::decrementAt(POINT *pt)
 {  
   MonitorInfo *m = this->monitorGetAt(pt);
-  m->level = correctGamma(m->level - GAMMA_DECREMENT_VALUE);
-  return this->setMonitorGamma(m->hDC, m->level);
+  m->level = m->r = m->g = m->b = correctGamma(m->r - GAMMA_DECREMENT_VALUE);
+  return this->setMonitorGamma(m->hDC, m->r, m->g, m->b);
 }
 
 bool GammaController::resetMonitorAt(POINT *pt)
 {
   MonitorInfo *m = this->monitorGetAt(pt);
-  m->level = correctGamma(DEFAULT_GAMMA);
-  return this->setMonitorGamma(m->hDC, m->level);
+  m->level = m->r = m->g = m->b = correctGamma(DEFAULT_GAMMA);
+  return this->setMonitorGamma(m->hDC, m->r, m->g, m->b);
 }
 
 double GammaController::correctGamma(double gamma)

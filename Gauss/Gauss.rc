@@ -283,6 +283,7 @@ GUIDELINES DESIGNINFO
       //MENUITEM "ショートカット作成", IDM_SHORTCUT;
       MENUITEM "リセット", IDM_RESET;
       MENUITEM "キー設定", IDM_KEYBOARD;
+      MENUITEM "完全な黒を維持", IDM_DARKCORRECT;
       //MENUITEM "中断", IDM_STOP;
       //MENUITEM "ポケモンフラッシュ(開始/中断)", IDM_POCKEMON;
       MENUITEM "終了", IDM_EXIT;
@@ -299,6 +300,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
       //MENUITEM "ショートカット作成", IDM_SHORTCUT;
       MENUITEM "Reset", IDM_RESET;
       MENUITEM "Key Config", IDM_KEYBOARD;
+      MENUITEM "Keep Black", IDM_DARKCORRECT;
       //MENUITEM "中断", IDM_STOP;
       //MENUITEM "ポケモンフラッシュ(開始/中断)", IDM_POCKEMON;
       MENUITEM "Quit", IDM_EXIT;
