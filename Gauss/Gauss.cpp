@@ -1179,8 +1179,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				  mii.cbSize = sizeof(MENUITEMINFO);
           mii.fType = MFT_STRING;
           mii.fMask = MIIM_FTYPE | MIIM_STRING | MIIM_ID;
-          //mii.dwTypeData = ::sprintf_alloc(L"%s調節", gammaController.monitorGet(i)->monitorName);
-          
+         
           TCHAR format[256];
           ::LoadString(::GetModuleHandle(NULL), IDS_MONITOR_CONTROL_MENU_FORMAT, format, sizeof(format));
 
@@ -1241,9 +1240,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
       }else{
         gammaController.m_darkCorrect = TRUE;
       }
-      gammaController.redraw();
-      //gammaController.incrementAtCursorPos();
-      //gammaController.decrement();
+      // reset display
+      gammaController.setMonitorGammaDifference(g_gammaR, g_gammaG, g_gammaB);
       break;
 
 		default:
@@ -1284,7 +1282,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
   case WM_NCDESTROY:
-		//::TasktrayDeleteIcon(hWnd, ID_TRAYICON);
 		if(!::Shell_NotifyIcon(NIM_DELETE, &nid)){
       ::ShowLastError();
     }
